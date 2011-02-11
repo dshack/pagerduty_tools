@@ -10,25 +10,17 @@ end
 
 doc = open(ARGV[0]) { |f| Hpricot(f) }
 
-dates = []
-counts = {}
-last_date = ""
-count = 0
+counts_by_day = []
 
 (doc/"table#monthly_report_tbl/tbody/tr").each do |row|
   date = (row/"td.date").inner_html.split(' at ')[0]
-  if (date == last_date)
-    count = count + 1
+  if (counts_by_day[-1] && counts_by_day[-1]['date'] == date)
+    counts_by_day[-1]['count'] += 1
   else
-    if (last_date != "")
-      dates << last_date
-      counts[last_date] = count
-    end
-    last_date = date
-    count = 1
+    counts_by_day << { 'date' => date, 'count' => 1}
   end
 end
 
-dates.each do |date|
-  puts "#{date}\t#{counts[date]}"
+counts_by_day.each do |day|
+  puts "#{day['date']}\t#{day['count']}"
 end
