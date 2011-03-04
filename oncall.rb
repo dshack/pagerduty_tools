@@ -11,8 +11,8 @@
 # should only need to enter login credentials on the first run.
 
 require 'rubygems'
+require 'bundler/setup'
 require 'nokogiri'
-
 require "lib/pagerduty.rb"
 
 if (ARGV.include?("--help") or ARGV.include?("-h"))

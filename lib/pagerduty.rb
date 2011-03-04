@@ -4,7 +4,6 @@
 # knows how to find your PagerDuty domain, log into PagerDuty, store 
 # cookies for future logins, and grab pages from the site for parsing.
 
-require 'rubygems'
 require 'nokogiri'
 require 'mechanize'
 require 'highline/import'
