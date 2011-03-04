@@ -13,7 +13,7 @@
 require 'rubygems'
 require 'bundler/setup'
 require 'nokogiri'
-require "lib/pagerduty.rb"
+require "#{File.dirname(__FILE__)}/lib/pagerduty.rb"
 
 if (ARGV.include?("--help") or ARGV.include?("-h"))
   puts "Usage: oncall.rb [#]...[#] (where # is an oncall level you want reported, optional)"
