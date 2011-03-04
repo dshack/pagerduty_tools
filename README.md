@@ -47,3 +47,8 @@ Calling the script with `-h` or `--help` will display some help.
 
     $ ./oncall.rb 1 2
     Hotseat: John Henry, Hotseat Backup: Lisa Limon
+
+# License #
+
+Copyright 2011 Marc Hedlund. Distributed under the Apache License, version 2.0.
+
