@@ -46,7 +46,7 @@ oncall.css("div").each do |div|
   
   person = div.css("span > a").text
   
-  if (ARGV.length == 0 or ARGV.include?(level)):
+  if (ARGV.length == 0 or ARGV.include?(level))
     results << "#{label}: #{person}"
   end
 end
