@@ -85,6 +85,7 @@ module PagerDuty
 
       if @cookie_file
         @agent.cookie_jar.save_as(@cookie_file)
+        File.chmod(0600, @cookie_file)
       end      
       
       return page
