@@ -8,18 +8,19 @@ require 'nokogiri'
 require 'mechanize'
 require 'highline/import'
 
+COOKIE_FILE     = "~/.pagerduty-cookies"
 EMAIL_PROMPT    = "PagerDuty account email address:"
 PASSWORD_PROMPT = "PagerDuty password:"
 ACCOUNT_PROMPT  = "Select your PagerDuty domain:"
 
 module PagerDuty
   class Scraper
-    def initialize cookie_file
+    def initialize
       # Works around a bug in highline, producing "input stream exhausted" errors.
       # See http://groups.google.com/group/comp.lang.ruby/browse_thread/thread/939d9f86a18e6f9e/ec1c3f1921cd66ea
       HighLine.track_eof = false
 
-      @cookie_file = cookie_file
+      @cookie_file = File.expand_path(COOKIE_FILE)
       @agent       = Mechanize.new
       
       load_cookies

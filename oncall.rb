@@ -22,15 +22,14 @@ if (ARGV.include?("--help") or ARGV.include?("-h"))
   exit(0)
 end
 
-dashboard_path = "/dashboard"
-cookie_file    = File.expand_path("~/.pagerduty-cookies")
-pagerduty      = PagerDuty::Scraper.new cookie_file
-page           = pagerduty.fetch dashboard_path
+# Log into PagerDuty and get the Dashboard page.
+pagerduty = PagerDuty::Scraper.new
+page      = pagerduty.fetch "/dashboard"
 
-# Now, we should have the Dashboard HTML.  Pull out the on-call people requested.
-doc = Nokogiri::HTML(page.body)
-oncall = doc.css("div.whois_oncall").first
-results = []
+# Scrape out the on-call list from the Dashboard HTML.
+dashboard = Nokogiri::HTML(page.body)
+oncall    = dashboard.css("div.whois_oncall").first
+results   = []
 
 oncall.css("div").each do |div|  
   level_text = div.css("span > strong").text
@@ -38,8 +37,7 @@ oncall.css("div").each do |div|
   level = $1
   
   # PagerDuty sometimes adds a comment saying what the rotation is called
-  # for this level. If it's there, use it, but otherwise use a generic 
-  # label ("Level 2").
+  # for this level. If it's there, use it, or fall back to a generic label.
   label_text = div.xpath("span/comment()").text
   label_text =~ /\(<[^>]+>(.+) on-call<\/a>\)/
   label = $1 || "Level #{level}"
@@ -51,4 +49,5 @@ oncall.css("div").each do |div|
   end
 end
 
+# Show the current on-call list.
 puts results.join(", ")
