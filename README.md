@@ -1,6 +1,8 @@
 # pagerduty-tools #
 
-Tools to work around the limitations in the PagerDuty API.
+Tools to work around the current limitations in the
+[PagerDuty](http://www.pagerduty.com)
+[API](http://www.pagerduty.com/docs/api/api-documentation).
 
 ## Installing ##
 
@@ -8,7 +10,8 @@ First, clone the GitHub repo:
 
     $ git clone git://github.com/precipice/pagerduty-tools.git
 
-If you don't already have Bundler installed, do that now:
+If you don't already have [Bundler](http://gembundler.com/) installed, do that
+now:
 
     $ gem install bundler
 
@@ -34,6 +37,8 @@ want another output format.)
 If the on call level has an associated on-call rotation, the name of that
 rotation is used in the output. Otherwise, a generic `Level <#>` format is
 used.
+
+Calling the script with `-h` or `--help` will display some help.
 
 ## Examples ##
 
