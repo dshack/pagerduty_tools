@@ -8,6 +8,10 @@ require 'nokogiri'
 require 'mechanize'
 require 'highline/import'
 
+EMAIL_PROMPT    = "PagerDuty account email address:"
+PASSWORD_PROMPT = "PagerDuty password:"
+ACCOUNT_PROMPT  = "Select your PagerDuty domain:"
+
 module PagerDuty
   class Scraper
     def initialize cookie_file
@@ -37,7 +41,7 @@ module PagerDuty
     
     def find_domain
       if (!@domain)
-        @email = ask('Email address: ')
+        @email = ask("#{EMAIL_PROMPT} ")
         
         accounts_search_page = @agent.get URI.parse "http://app.pagerduty.com/accounts/search"
         account_form = accounts_search_page.form_with(:action => "/accounts/search_results")
@@ -54,7 +58,7 @@ module PagerDuty
         elsif (domains.count == 1)
           @domain = domains.first
         else
-          say("Select your account:")
+          say(ACCOUNT_PROMPT)
           @domain = choose(*domains)
         end
       end
@@ -64,11 +68,11 @@ module PagerDuty
       login_form = page.form_with(:action => "/session")
       
       if (!@email)
-        @email = ask('Email address: ')
+        @email = ask("#{EMAIL_PROMPT} ")
       end
       
       login_form.email = @email
-      login_form.password = ask('Password: ') {|q| q.echo = "*"}
+      login_form.password = ask("#{PASSWORD_PROMPT} ") {|q| q.echo = "*"}
       
       return login_form.submit
     end
