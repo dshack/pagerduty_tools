@@ -1,4 +1,5 @@
 source "http://rubygems.org"
+gem "highline"
+gem "json"
 gem "nokogiri"
 gem "mechanize"
-gem "highline"
