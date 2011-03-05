@@ -32,6 +32,7 @@ require 'uri'
 require 'net/http'
 
 CONFIG_FILE = "~/.pagerduty-campfire.yaml"
+CA_FILE     = "#{File.dirname(__FILE__)}/cacert.pem"
 
 module Campfire
   class Topic
@@ -47,6 +48,7 @@ module Campfire
     def topic topic
       x             = Net::HTTP.new(@uri.host, @uri.port)
       x.use_ssl     = true
+      x.ca_file     = File.expand_path(CA_FILE)
       x.verify_mode = OpenSSL::SSL::VERIFY_PEER
 
       message = "<room><topic>#{topic}</topic></room>"

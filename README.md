@@ -69,8 +69,7 @@ cron right after the rotation turns over to a new assignment.
 
 # alerts-by-day.rb #
 
-This script is currently being revised and doesn't work with the rest of the
-package yet.
+This script is being revised and doesn't work with the rest of the package yet.
 
 # License #
 
