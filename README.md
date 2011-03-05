@@ -50,10 +50,14 @@ as the topic of a Campfire room, add a configuration file at
     room:  99999
     token: abababababababababababababababababababab
 
-(with the values changed to match your configuration). You can then invoke
-oncall.rb with a `-t` or `--campfire-topic` option, and the output of the
-script will be set as the topic for the configured room.  We do this out of
-cron right after the rotation turns over to a new assignment.
+with the values changed to match your configuration. I'd recommend running:
+
+    $ chmod 0600 ~/.pagerduty-campfire.yaml
+
+after creating it. You can then invoke oncall.rb with a `-t` or
+`--campfire-topic` option, and the output of the script will be set as the
+topic for the configured room. We do this out of cron right after the rotation
+turns over to a new assignment.
 
 ## Examples ##
 
