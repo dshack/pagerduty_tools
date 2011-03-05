@@ -26,15 +26,30 @@
 
 require 'rubygems'
 require 'bundler/setup'
+require 'optparse'
 require 'nokogiri'
 require "#{File.dirname(__FILE__)}/lib/pagerduty"
+require "#{File.dirname(__FILE__)}/lib/campfire"
 
-if (ARGV.include?("--help") or ARGV.include?("-h"))
-  puts "Usage: oncall.rb [#]...[#] (where # is an oncall level you want reported, optional)"
-  puts "If level is omitted, all levels will be shown."
-  puts "Example: 'oncall.rb 1 2' will print the current person on-call for levels 1 and 2."
-  exit(0)
+# Look for reporting options
+options = {}
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: oncall.rb [#]...[#] (where # is an oncall level you want shown)\n" +
+                "If no level is given, all levels will be shown by default."
+
+  options[:campfire_topic] = false
+  opts.on( '-t', '--campfire-topic', 'Set the result as a topic for a Campfire room' ) do
+    options[:campfire_topic] = true
+  end
+
+  opts.on( '-h', '--help', 'Display this message' ) do
+    puts opts
+    exit
+  end
 end
+
+optparse.parse!
 
 # Log into PagerDuty and get the Dashboard page.
 pagerduty = PagerDuty::Scraper.new
@@ -64,4 +79,13 @@ oncall.css("div").each do |div|
 end
 
 # Show the current on-call list.
-puts results.join(", ")
+report = results.join(", ")
+
+if (options[:campfire_topic])
+  campfire = Campfire::Topic.new
+  campfire.topic report
+else
+  puts report
+end
+
+exit(0)

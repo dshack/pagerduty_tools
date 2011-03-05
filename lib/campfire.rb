@@ -18,32 +18,43 @@
 # to set the topic in a Campfire room, and nothing else.
 #
 # Adapted from https://gist.github.com/7cefe083682cdd3e4e10
+#
+# To make this work, add a configuration file at ~/.pagerduty-campfire.yaml
+# containing the following:
+#
+#     site:  https://example.campfirenow.com
+#     room:  99999
+#     token: abababababababababababababababababababab
+#
+# (with the values changed to match your configuration).
 
 require 'uri'
 require 'net/http'
 
+CONFIG_FILE = "~/.pagerduty-campfire.yaml"
+
 module Campfire
   class Topic
-    attr_reader :uri, :token, :pass
-
-    def initialize uri, room, token, pass = 'x'
-      @uri   = URI.parse uri
-      @room  = room
-      @token = token
-      @pass  = pass
+    def initialize
+      # TODO: make sure that the file is there and that all the keys are, too.
+      config = YAML::load(File.open(File.expand_path(CONFIG_FILE)))
+      @uri   = URI.parse config["site"]
+      @room  = config["room"]
+      @token = config["token"]
+      @pass  = 'x'
     end
 
     def topic topic
-      x             = Net::HTTP.new(uri.host, uri.port)
+      x             = Net::HTTP.new(@uri.host, @uri.port)
       x.use_ssl     = true
-      x.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      x.verify_mode = OpenSSL::SSL::VERIFY_PEER
 
       message = "<room><topic>#{topic}</topic></room>"
 
       x.start do |http|
         req = Net::HTTP::Put.new "/room/#{@room}.xml"
         req['Content-Type'] = 'application/xml'
-        req.basic_auth token, pass
+        req.basic_auth @token, @pass
         http.request(req, message)
       end
     end

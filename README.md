@@ -40,6 +40,21 @@ used.
 
 Calling the script with `-h` or `--help` will display some help.
 
+## Campfire Support ##
+
+If you would like to have your current PagerDuty rotation assignments listed
+as the topic of a Campfire room, add a configuration file at
+`~/.pagerduty-campfire.yaml` containing the following:
+
+    site:  https://example.campfirenow.com
+    room:  99999
+    token: abababababababababababababababababababab
+
+(with the values changed to match your configuration). You can then invoke
+oncall.rb with a `-t` or `--campfire-topic` option, and the output of the
+script will be set as the topic for the configured room.  We do this out of
+cron right after the rotation turns over to a new assignment.
+
 ## Examples ##
 
     $ ./oncall.rb
@@ -47,6 +62,15 @@ Calling the script with `-h` or `--help` will display some help.
 
     $ ./oncall.rb 1 2
     Hotseat: John Henry, Hotseat Backup: Lisa Limon
+
+    $ ./oncall.rb --campfire-topic 1 2
+    [No shell output, but the configured Campfire room's topic becomes:
+    "Hotseat: John Henry, Hotseat Backup: Lisa Limon"]
+
+# alerts-by-day.rb #
+
+This script is currently being revised and doesn't work with the rest of the
+package yet.
 
 # License #
 
