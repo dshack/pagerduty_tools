@@ -75,6 +75,10 @@ turns over to a new assignment.
 
 This script is being revised and doesn't work with the rest of the package yet.
 
+# rotation-report.rb #
+
+This one is brand-new and doesn't do much yet.
+
 # License #
 
 Copyright 2011 Marc Hedlund. Distributed under the Apache License, version 2.0.
