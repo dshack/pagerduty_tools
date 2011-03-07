@@ -27,7 +27,7 @@ require "#{File.dirname(__FILE__)}/lib/pagerduty"
 require "#{File.dirname(__FILE__)}/lib/campfire"
 
 # make offset = limit for second page
-INCIDENT_PATH = '/api/beta/incidents?echo=3&offset=0&limit=100&sort_by=created_on%3Adesc&status='
+INCIDENT_PATH = '/api/beta/incidents?echo=1&offset=0&limit=100&sort_by=created_on%3Adesc&status='
 
 # Static dates for now.
 # TODO: need to set these dynamically. From a rotation, maybe?
@@ -51,11 +51,13 @@ def pct_change old_value, new_value
     return "(no occurrences last week)"
   else
     change = (((new_value.to_f - old_value.to_f) / old_value.to_f) * 100).to_i
-    
+
     if (change == 0)
       return "(no change vs. last week)"
+
     elsif (change < 0)
       return "(#{change}% vs. last week)"
+
     else
       return "(+#{change}% vs. last week)"
     end
@@ -83,7 +85,10 @@ current_incidents = incidents_report['incidents'].select do |incident|
 end
 
 current_incidents.each do |incident|
-  resolvers[incident['resolved_by']['name']] += 1
+  if (incident['status'] == 'resolved')
+    resolvers[incident['resolved_by']['name']] += 1
+  end
+  
   current_triggers[trigger_name(incident)] += 1
 end
 
