@@ -41,6 +41,7 @@ pagerduty        = PagerDuty::Scraper.new
 incidents_json   = pagerduty.fetch INCIDENT_PATH
 incidents_report = JSON.parse(incidents_json.body)
 
+resolved_count    = 0
 resolvers         = Hash.new(0)
 current_triggers  = Hash.new(0)
 previous_triggers = Hash.new(0)
@@ -86,6 +87,7 @@ end
 
 current_incidents.each do |incident|
   if (incident['status'] == 'resolved')
+    resolved_count += 1
     resolvers[incident['resolved_by']['name']] += 1
   end
   
@@ -107,7 +109,13 @@ report << "Rotation report for #{current_shift_start.strftime("%B %d")} - "
 report << "#{current_shift_end.strftime("%B %d")}:\n\n"
 
 incidents_change = pct_change(previous_incidents.count, current_incidents.count)
-report << "#{current_incidents.count} incidents #{incidents_change}\n\n"
+report << "#{current_incidents.count} incidents"
+
+if (resolved_count != current_incidents.count)
+  report << ", #{current_incidents.count - resolved_count} unresolved"
+end
+
+report << " #{incidents_change}\n\n"
 
 # TODO: enough with the mega block calls.
 report << "Resolutions:\n  "
