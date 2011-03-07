@@ -28,7 +28,7 @@ PASSWORD_PROMPT = "PagerDuty password:"
 ACCOUNT_PROMPT  = "Select your PagerDuty domain:"
 
 module PagerDuty
-  class Scraper
+  class Agent
     def initialize
       # Works around a bug in highline, producing "input stream exhausted" errors.
       # See http://groups.google.com/group/comp.lang.ruby/browse_thread/thread/939d9f86a18e6f9e/ec1c3f1921cd66ea
@@ -82,12 +82,9 @@ module PagerDuty
     def login page
       login_form = page.form_with(:action => "/session")
       
-      if (!@email)
-        @email = ask("#{EMAIL_PROMPT} ")
-      end
-      
+      @email ||= ask("#{EMAIL_PROMPT} ")
       login_form.email = @email
-      login_form.password = ask("#{PASSWORD_PROMPT} ") {|q| q.echo = "*"}
+      login_form.password = ask("#{PASSWORD_PROMPT} ") {|q| q.echo = "*" }
       
       return login_form.submit
     end

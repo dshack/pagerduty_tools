@@ -52,7 +52,7 @@ end
 optparse.parse!
 
 # Log into PagerDuty and get the Dashboard page.
-pagerduty = PagerDuty::Scraper.new
+pagerduty = PagerDuty::Agent.new
 page      = pagerduty.fetch "/dashboard"
 
 # Scrape out the on-call list from the Dashboard HTML.

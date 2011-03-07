@@ -1,4 +1,5 @@
 source "http://rubygems.org"
+gem "chronic"
 gem "highline"
 gem "json"
 gem "nokogiri"
