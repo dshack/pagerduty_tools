@@ -35,7 +35,7 @@ CONFIG_FILE = "~/.pagerduty-campfire.yaml"
 CA_FILE     = "#{File.dirname(__FILE__)}/cacert.pem"
 
 module Campfire
-  class Topic
+  class Bot
     def initialize
       # TODO: make sure that the file is there and that all the keys are, too.
       config = YAML::load(File.open(File.expand_path(CONFIG_FILE)))
@@ -55,6 +55,22 @@ module Campfire
 
       x.start do |http|
         req = Net::HTTP::Put.new "/room/#{@room}.xml"
+        req['Content-Type'] = 'application/xml'
+        req.basic_auth @token, @pass
+        http.request(req, message)
+      end
+    end
+
+    def paste message
+      x             = Net::HTTP.new(@uri.host, @uri.port)
+      x.use_ssl     = true
+      x.ca_file     = File.expand_path(CA_FILE)
+      x.verify_mode = OpenSSL::SSL::VERIFY_PEER
+
+      message = "<message><type>PasteMessage</type><body>#{message}</body></message>"
+
+      x.start do |http|
+        req = Net::HTTP::Post.new "/room/#{@room}/speak.xml"
         req['Content-Type'] = 'application/xml'
         req.basic_auth @token, @pass
         http.request(req, message)

@@ -82,7 +82,7 @@ end
 report = results.join(", ")
 
 if (options[:campfire_topic])
-  campfire = Campfire::Topic.new
+  campfire = Campfire::Bot.new
   campfire.topic report
 else
   puts report
