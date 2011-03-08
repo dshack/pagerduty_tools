@@ -32,6 +32,7 @@ require "#{File.dirname(__FILE__)}/lib/report"
 
 INCIDENTS_PATH = '/api/beta/incidents?offset=0&limit=100&sort_by=created_on%3Adesc&status='
 ALERTS_PATH    = '/reports/2011/3?filter=all&time_display=local' 
+ONE_WEEK       = 60 * 60 * 24 * 7
 
 pagerduty = PagerDuty::Agent.new
 
@@ -61,7 +62,7 @@ schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
       if row.css("td")[0].text =~ /On-call now/i
         current_shift_start  = Chronic.parse(row.css("td span")[0].text)
         current_shift_end    = Chronic.parse(row.css("td span")[1].text)
-        previous_shift_start = current_shift_start - (7 * 60 * 60 * 24)
+        previous_shift_start = current_shift_start - ONE_WEEK
       end
     end
   end
