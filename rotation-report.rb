@@ -30,7 +30,6 @@ require "#{File.dirname(__FILE__)}/lib/campfire"
 require "#{File.dirname(__FILE__)}/lib/pagerduty"
 require "#{File.dirname(__FILE__)}/lib/report"
 
-INCIDENTS_PATH = '/api/beta/incidents?offset=0&limit=100&sort_by=created_on%3Adesc&status='
 ALERTS_PATH    = '/reports/2011/3?filter=all&time_display=local'
 ONE_DAY        = 60 * 60 * 24
 ONE_WEEK       = ONE_DAY * 7
@@ -91,16 +90,33 @@ end
 # Parse the incident data.
 #
 
-# TODO: need to get more incident data if there are more than 100 incidents
-# in the report period.  Make offset = limit for second page.
-incidents_json = pagerduty.fetch INCIDENTS_PATH
-incidents_data = JSON.parse(incidents_json.body)
-incidents      = Report::Summary.new current_start, current_end, previous_start, previous_end
+incidents = Report::Summary.new current_start, current_end, previous_start, previous_end
 
-incidents_data['incidents'].each do |incident|
-  incidents << PagerDuty::Incident.new(incident)
+# Use a method definition to let us return out of the while loop and block.
+# REVIEW: this is a little heavy-handed; there's probably a better approach.
+def collect_incidents pagerduty, incidents
+  offset = 0
+
+  while offset < 1000 # just a safety killswitch
+    incidents_path = "/api/beta/incidents?offset=#{offset}&limit=100&sort_by=created_on%3Adesc&status="
+    incidents_json = pagerduty.fetch incidents_path
+    incidents_data = JSON.parse(incidents_json.body)
+
+    incidents_data['incidents'].each do |incident_data|
+      incident = PagerDuty::Incident.new(incident_data)
+      if incident.between?(incidents.previous_start, incidents.current_end)
+        incidents << incident
+      else
+        return
+      end
+    end
+
+    offset += 100
+    sleep(1) # for API politeness
+  end
 end
 
+collect_incidents(pagerduty, incidents)
 unresolved = incidents.current_count {|incident| !incident.resolved? }
 resolvers  = incidents.current_summary {|incident, summary| summary[incident.resolver] += 1 if incident.resolved? }
 triggers   = incidents.current_summary {|incident, summary| summary[incident.trigger_name] += 1 }

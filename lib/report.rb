@@ -41,6 +41,8 @@ module Report
   end
 
   class Summary
+    attr_accessor(:current_start, :current_end, :previous_start, :previous_end)
+
     def initialize current_start, current_end, previous_start, previous_end
       @current_start  = current_start
       @current_end    = current_end
@@ -54,11 +56,11 @@ module Report
     end
 
     def current_items
-      _select_between?(@current_start, @current_end)
+      _select_between?(current_start, current_end)
     end
 
     def previous_items
-      _select_between?(@previous_start, @previous_end)
+      _select_between?(previous_start, previous_end)
     end
 
     def _select_between? a, b
