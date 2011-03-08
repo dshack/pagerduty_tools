@@ -22,6 +22,8 @@ require 'nokogiri'
 require 'mechanize'
 require 'highline/import'
 
+require "#{File.dirname(__FILE__)}/report"
+
 COOKIE_FILE     = "~/.pagerduty-cookies"
 EMAIL_PROMPT    = "PagerDuty account email address: "
 PASSWORD_PROMPT = "PagerDuty password: "
@@ -115,7 +117,7 @@ module PagerDuty
 
     def parse page_body
       oncall  = Nokogiri::HTML(page_body).css("div.whois_oncall").first
-      results = []
+      @results = []
 
       oncall.css("div").each do |div|
         level_text = div.css("span > strong").text
@@ -131,38 +133,25 @@ module PagerDuty
         person = div.css("span > a").text
 
         if @levels == nil or @levels.length == 0 or @levels.include?(level)
-          results << {'level' => level, 'label' => label, 'person' => person}
+          @results << {'level' => level, 'label' => label, 'person' => person}
         end
       end
+    end
 
-      return results
+    def label_for_level level
+      @results.find {|result| result['level'] == level }['label']
+    end
+
+    def label_for_person person
+      @results.find {|result| result['person'] == person }['label']
+    end
+
+    def level_for_person person
+      @results.find {|result| result['person'] == person }['level']
     end
   end
 
-  class ReportItem
-    attr_accessor(:time)
-
-    def initialize time
-      @time = time
-    end
-
-    def between?(start_time, end_time)
-      # `time` equals or is after `start_time`, and is before `end_time`
-      (start_time <=> time) <= 0 and (time <=> end_time) == -1
-    end
-
-    def off_hours?
-      # Outside normal work hours - 6p to 8a (localtime)
-      time.hour >= 18 or time.hour < 8
-    end
-
-    def graveyard?
-      # Worst of the worst - midnight to 8am (localtime)
-      time.hour < 8
-    end
-  end
-
-  class Alert < ReportItem
+  class Alert < Report::Item
     attr_accessor(:type, :user)
 
     def initialize time, type, user
@@ -180,7 +169,7 @@ module PagerDuty
     end
   end
 
-  class Incident < ReportItem
+  class Incident < Report::Item
     attr_accessor(:status, :resolver, :service, :event)
 
     def initialize incident
@@ -203,12 +192,12 @@ module PagerDuty
     end
 
     def trigger_name
-      if (service == "Nagios")
+      if service == "Nagios"
         return "Nagios: #{event['host']} - #{event['service']}"
-      elsif (service == "Pingdom")
+      elsif service == "Pingdom"
         return "Pingdom: #{event['description']}"
       else
-        return "Unknown event"
+        return "[Unknown event]"
       end
     end
   end

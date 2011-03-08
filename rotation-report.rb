@@ -41,19 +41,25 @@ pagerduty = PagerDuty::Agent.new
 # Parse the on-call list.
 #
 escalation   = PagerDuty::Escalation.new ARGV
-page         = pagerduty.fetch "/dashboard"
-oncall_html  = escalation.parse page.body
-target_level = oncall_html.find {|result| result['level'] == "1" }['label']
+dashboard    = pagerduty.fetch "/dashboard"
+escalation.parse dashboard.body
+target_level = escalation.label_for_level "1"
+
+unless target_level
+  puts "Couldn't find the top-level rotation on the Dashboard."
+  exit(1)
+end
 
 #
 # Derive the on-call schedule
 #
-current_shift_end    = nil
-current_shift_start  = nil
-previous_shift_start = nil
+current_start  = nil
+current_end    = nil
+previous_start = nil
+previous_end   = nil
 
 schedule_page = pagerduty.fetch "/schedule"
-schedule_data = Nokogiri::HTML.parse(schedule_page.body)
+schedule_data = Nokogiri::HTML.parse schedule_page.body
 
 schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
   title = policy.css("div.resource_labels > a").text
@@ -61,12 +67,24 @@ schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
   if title == target_level
     rotation = policy.css("td.rotation_properties div table tr").each do |row|
       if row.css("td")[0].text =~ /On-call now/i
-        current_shift_start  = Chronic.parse(row.css("td span")[0].text)
-        current_shift_end    = Chronic.parse(row.css("td span")[1].text)
-        previous_shift_start = current_shift_start - ONE_WEEK
+        current_start  = Chronic.parse(row.css("td span")[0].text)
+        current_end    = Chronic.parse(row.css("td span")[1].text)
+
+        # Shifts are either one day or one week (currently, at least).
+        # For a week-long shift, we want the previous full week. For a day
+        # shift, we want the same day of the week, one week ago. Either
+        # way, we want the start and end to be a full week before the current
+        # start and end.
+        previous_start = current_start - ONE_WEEK
+        previous_end   = current_end   - ONE_WEEK
       end
     end
   end
+end
+
+unless current_start and current_end and previous_start and previous_end
+  puts "Couldn't find the rotation schedule for level #{target_level}."
+  exit(2)
 end
 
 #
@@ -77,100 +95,73 @@ end
 # in the report period.  Make offset = limit for second page.
 incidents_json = pagerduty.fetch INCIDENTS_PATH
 incidents_data = JSON.parse(incidents_json.body)
-
-incidents         = []
-resolved_count    = 0
-resolvers         = Hash.new(0)
-current_triggers  = Hash.new(0)
-previous_triggers = Hash.new(0)
+incidents      = Report::Summary.new current_start, current_end, previous_start, previous_end
 
 incidents_data['incidents'].each do |incident|
   incidents << PagerDuty::Incident.new(incident)
 end
 
-incidents.each do |incident| 
-  if incident.between?(current_shift_start, current_shift_end)
-    current_triggers[incident.trigger_name] += 1
-
-    if incident.resolved?
-      resolved_count += 1
-      resolvers[incident.resolver] += 1
-    end  
-  elsif incident.between?(previous_shift_start, current_shift_start)
-    previous_triggers[incident.trigger_name] += 1
-  end
-end
+unresolved = incidents.current_count {|incident| !incident.resolved? }
+resolvers  = incidents.current_summary {|incident, summary| summary[incident.resolver] += 1 if incident.resolved? }
+triggers   = incidents.current_summary {|incident, summary| summary[incident.trigger_name] += 1 }
 
 #
 # Parse the alert data.
 #
 alerts_html = pagerduty.fetch ALERTS_PATH
 alerts_data = Nokogiri::HTML(alerts_html.body)
-
-alerts             = []
-current_alerts     = []
-previous_alerts    = []
-sms_phone_alertees = Hash.new(0)
+alerts      = Report::Summary.new current_start, current_end, previous_start, previous_end
 
 alerts_data.css("table#monthly_report_tbl > tbody > tr").each do |row|
   alerts << PagerDuty::Alert.new(row.css("td.date").text, row.css("td.type").text, row.css("td.user").text)
 end
 
-current_alerts  = alerts.select{|alert| alert.between?(current_shift_start, current_shift_end) }
-previous_alerts = alerts.select{|alert| alert.between?(previous_shift_start, current_shift_start) }
-
-current_alerts.each do |alert|
-  if alert.phone_or_sms? 
-    sms_phone_alertees[alert.user] += 1
-  end
-end
+sms_or_phone = alerts.current_summary {|alert, summary| summary[alert.user] += 1 if alert.phone_or_sms? }
+email        = alerts.current_summary {|alert, summary| summary[alert.user] += 1 if alert.email? }
 
 #
 # Build up the report format.
 #
-report = ""
 
 # Header
-report << "Rotation report for #{current_shift_start.strftime("%B %d")} - "
-report << "#{current_shift_end.strftime("%B %d")}:\n"
+report =  "Rotation report for #{current_start.strftime("%B %d")} - "
+report << "#{current_end.strftime("%B %d")}:\n"
 
 # Incident volume
-current_incidents  = current_triggers.each_value.inject {|sum, n| sum + n } 
-previous_incidents = previous_triggers.each_value.inject {|sum, n| sum + n } 
-incidents_change   = Report.pct_change(previous_incidents, current_incidents)
-
-report << "  #{current_incidents} incidents"
-if resolved_count != current_incidents
-  report << ", #{current_incidents - resolved_count} unresolved"
-end
-report << " (#{incidents_change})\n\n"
+report << "  #{incidents.current_count} incidents"
+report << ", #{unresolved} unresolved" if unresolved > 0
+report << " (#{incidents.pct_change})\n\n"
 
 # Resolutions
 report << "Resolutions:\n  "
-report << resolvers.sort{|a, b| b[1] <=> a[1]}.map{|name, count| "#{name}: #{count}"}.join(", ") + "\n"
+resolver_report = resolvers.map do |name, count|
+  important_levels = ["1", "2"]
+  # TODO: make this a command-line option
+  if important_levels.include? escalation.level_for_person(name) 
+    "#{name} (#{escalation.label_for_person(name)}): #{count}"
+  else
+    "#{name}: #{count}"
+  end
+end
+report << resolver_report.join(", ") + "\n"
 report << "\n"
 
 # Alert volume
-current_sms_count       = current_alerts.count{|alert| alert.phone_or_sms? }
-previous_sms_count      = previous_alerts.count{|alert| alert.phone_or_sms? }
-current_late_sms_count  = current_alerts.count{|alert| alert.phone_or_sms? and alert.graveyard? }
-previous_late_sms_count = previous_alerts.count{|alert| alert.phone_or_sms? and alert.graveyard? }
-
 report << "SMS/Phone Alerts "
-report << "(#{current_sms_count} total, "
-report << "#{Report.pct_change(previous_sms_count, current_sms_count)}; "
-report << "#{current_late_sms_count} late night, "
-report << "#{Report.pct_change(previous_late_sms_count, current_late_sms_count)}):\n  "
-report << sms_phone_alertees.sort{|a, b| b[1] <=> a[1]}.map{|name, count| "#{name}: #{count}"}.join(", ") + "\n"
+report << "(#{alerts.current_count {|alert| alert.phone_or_sms? }} total, "
+report << "#{alerts.pct_change {|alert| alert.phone_or_sms? }}; "
+report << "#{alerts.current_count {|alert| alert.phone_or_sms? and alert.graveyard? }} after midnight, "
+report << "#{alerts.pct_change {|alert| alert.phone_or_sms? and alert.graveyard? }}):\n  "
+report << sms_or_phone.map {|name, count| "#{name}: #{count}"}.join(", ") + "\n"
 report << "\n"
 
 # Top triggers
 report << "Top triggers:\n"
-top_triggers = current_triggers.sort{|a, b| b[1] <=> a[1]}.map do |trigger, count| 
-  trigger_change = Report.pct_change(previous_triggers[trigger], count)
+trigger_report = triggers.map do |trigger, count| 
+  trigger_change = Report.pct_change(incidents.previous_count {|incident| incident.trigger_name == trigger }, count)
   "  #{count} \'#{trigger}\' (#{trigger_change})"
 end
-report << top_triggers[0..4].join("\n")
+report << trigger_report.take(5).join("\n")
 report << "\n"
 
 #

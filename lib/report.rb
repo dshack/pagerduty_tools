@@ -17,7 +17,96 @@
 require 'chronic'
 
 module Report
-  def self.pct_change(old_value, new_value)
+  class Item
+    attr_accessor(:time)
+
+    def initialize time
+      @time = time
+    end
+
+    def between?(start_time, end_time)
+      # `time` equals or is after `start_time`, and is before `end_time`
+      (start_time <=> time) <= 0 and (time <=> end_time) == -1
+    end
+
+    def off_hours?
+      # Outside normal work hours - 6p to 8a (localtime)
+      time.hour >= 18 or graveyard?
+    end
+
+    def graveyard?
+      # Worst of the worst - midnight to 8am (localtime)
+      time.hour < 8
+    end
+  end
+
+  class Summary
+    def initialize current_start, current_end, previous_start, previous_end
+      @current_start  = current_start
+      @current_end    = current_end
+      @previous_start = previous_start
+      @previous_end   = previous_end
+      @items          = []
+    end
+
+    def <<(item)
+      @items << item
+    end
+
+    def current_items
+      _select_between?(@current_start, @current_end)
+    end
+
+    def previous_items
+      _select_between?(@previous_start, @previous_end)
+    end
+
+    def _select_between? a, b
+      @items.select {|item| item.between?(a, b) }
+    end
+
+    def current_count(&selector)
+      _count_from(current_items, &selector)
+    end
+
+    def previous_count(&selector)
+      _count_from(previous_items, &selector)
+    end
+
+    def _count_from collection
+      if block_given?
+        return collection.count {|item| yield item }
+      else
+        return collection.count
+      end
+    end
+
+    def current_summary(&selector)
+      _summarize(current_items, &selector)
+    end
+
+    def previous_summary(&selector)
+      _summarize(previous_items, &selector)
+    end
+
+    def _summarize collection
+      summary = Hash.new(0)
+
+      collection.each do |item|
+        yield item, summary
+      end
+
+      return summary.sort{|a, b| b[1] <=> a[1] }
+    end
+
+    def pct_change(&selector)
+      old_value = previous_count(&selector)
+      new_value = current_count(&selector)
+      Report.pct_change old_value, new_value
+    end
+  end
+
+  def self.pct_change old_value, new_value
     if old_value == 0
       return "no occurrences last week"
     else
