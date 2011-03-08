@@ -111,12 +111,12 @@ module PagerDuty
 
   class Escalation
     def initialize levels=nil
-      # Scrape out the on-call list from the Dashboard HTML.
       @levels = levels
     end
 
-    def parse page_body
-      oncall  = Nokogiri::HTML(page_body).css("div.whois_oncall").first
+    def parse dashboard_body
+      # Scrape out the on-call list from the Dashboard HTML.
+      oncall  = Nokogiri::HTML(dashboard_body).css("div.whois_oncall").first # whois oncall first? ha!
       @results = []
 
       oncall.css("div").each do |div|
@@ -136,6 +136,7 @@ module PagerDuty
           @results << {'level' => level, 'label' => label, 'person' => person}
         end
       end
+
       return @results
     end
 
@@ -156,7 +157,18 @@ module PagerDuty
     attr_accessor(:type, :user)
 
     def initialize time, type, user
-      super(Chronic.parse(time))
+      # This charming little chunk works around an apparent bug in Chronic:
+      # if the parsed month is the same as the current month, :context =>
+      # :past will fail to set the month correctly.  (Looks like
+      # 'if @now.month > target_month' on line 28 of
+      # chronic-0.3.0/lib/chronic/repeaters/repeater_month_name.rb
+      # should be 'if @now.month >= target_month'.) Anyway, there, I
+      # fixed it.
+      if time.start_with?(Time.now.strftime("%b"))
+        super(Chronic.parse(time))
+      else
+        super(Chronic.parse(time, :context => :past))
+      end
       @type = type
       @user = user
     end

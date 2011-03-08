@@ -30,7 +30,6 @@ require "#{File.dirname(__FILE__)}/lib/campfire"
 require "#{File.dirname(__FILE__)}/lib/pagerduty"
 require "#{File.dirname(__FILE__)}/lib/report"
 
-ALERTS_PATH    = '/reports/2011/3?filter=all&time_display=local'
 ONE_DAY        = 60 * 60 * 24
 ONE_WEEK       = ONE_DAY * 7
 
@@ -39,7 +38,7 @@ pagerduty = PagerDuty::Agent.new
 #
 # Parse the on-call list.
 #
-escalation   = PagerDuty::Escalation.new ARGV
+escalation   = PagerDuty::Escalation.new
 dashboard    = pagerduty.fetch "/dashboard"
 escalation.parse dashboard.body
 target_level = escalation.label_for_level "1"
@@ -124,12 +123,27 @@ triggers   = incidents.current_summary {|incident, summary| summary[incident.tri
 #
 # Parse the alert data.
 #
-alerts_html = pagerduty.fetch ALERTS_PATH
-alerts_data = Nokogiri::HTML(alerts_html.body)
-alerts      = Report::Summary.new current_start, current_end, previous_start, previous_end
+alerts = Report::Summary.new current_start, current_end, previous_start, previous_end
 
-alerts_data.css("table#monthly_report_tbl > tbody > tr").each do |row|
-  alerts << PagerDuty::Alert.new(row.css("td.date").text, row.css("td.type").text, row.css("td.user").text)
+def collect_alerts pagerduty, alerts, year, month
+  alerts_path = "/reports/#{year}/#{month}?filter=all&time_display=local"
+  alerts_html = pagerduty.fetch alerts_path
+  alerts_data = Nokogiri::HTML(alerts_html.body)
+
+  alerts_data.css("table#monthly_report_tbl > tbody > tr").each do |row|
+    alert = PagerDuty::Alert.new(row.css("td.date").text, row.css("td.type").text, row.css("td.user").text)
+    if alert.between?(alerts.previous_start, alerts.current_end)
+      alerts << alert
+    end
+  end
+end
+
+collect_alerts(pagerduty, alerts, current_end.year, current_end.month)
+
+# This assumes that the alerts span at most two consecutive months,
+# between the previous period start and the current period end.
+if current_end.year != previous_start.year or current_end.month != previous_start.month
+  collect_alerts(pagerduty, alerts, previous_start.year, previous_start.month)
 end
 
 sms_or_phone = alerts.current_summary {|alert, summary| summary[alert.user] += 1 if alert.phone_or_sms? }
