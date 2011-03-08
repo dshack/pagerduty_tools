@@ -56,17 +56,17 @@ optparse.parse!
 # Log into PagerDuty and get the Dashboard page.
 pagerduty  = PagerDuty::Agent.new
 escalation = PagerDuty::Escalation.new ARGV
-page       = pagerduty.fetch "/dashboard"
-results    = escalation.parse page.body
+dashboard  = pagerduty.fetch "/dashboard"
+levels     = escalation.parse dashboard.body
 
 # Show the current on-call list.
-report = results.map{|result| "#{result['label']}: #{result['person']}" }.join(", ")
+oncall = levels.map{|level| "#{level['label']}: #{level['person']}" }.join(", ")
 
 if (options[:campfire_topic])
   campfire = Campfire::Bot.new
-  campfire.topic report
+  campfire.topic oncall
 else
-  puts report
+  puts oncall
 end
 
 exit(0)
