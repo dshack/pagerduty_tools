@@ -26,8 +26,10 @@
 
 require 'rubygems'
 require 'bundler/setup'
-require 'optparse'
+
 require 'nokogiri'
+require 'optparse'
+
 require "#{File.dirname(__FILE__)}/lib/pagerduty"
 require "#{File.dirname(__FILE__)}/lib/campfire"
 

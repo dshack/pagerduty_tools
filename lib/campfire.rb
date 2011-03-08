@@ -28,8 +28,9 @@
 #
 # (with the values changed to match your configuration).
 
-require 'uri'
 require 'net/http'
+require 'uri'
+require 'yaml'
 
 CONFIG_FILE = "~/.pagerduty-campfire.yaml"
 CA_FILE     = "#{File.dirname(__FILE__)}/cacert.pem"
@@ -43,37 +44,30 @@ module Campfire
       @room  = config["room"]
       @token = config["token"]
       @pass  = 'x'
+
+      @http             = Net::HTTP.new(@uri.host, @uri.port)
+      @http.use_ssl     = true
+      @http.ca_file     = File.expand_path(CA_FILE)
+      @http.verify_mode = OpenSSL::SSL::VERIFY_PEER
     end
 
     def topic topic
-      x             = Net::HTTP.new(@uri.host, @uri.port)
-      x.use_ssl     = true
-      x.ca_file     = File.expand_path(CA_FILE)
-      x.verify_mode = OpenSSL::SSL::VERIFY_PEER
-
+      request = Net::HTTP::Put.new "/room/#{@room}.xml"
       message = "<room><topic>#{topic}</topic></room>"
-
-      x.start do |http|
-        req = Net::HTTP::Put.new "/room/#{@room}.xml"
-        req['Content-Type'] = 'application/xml'
-        req.basic_auth @token, @pass
-        http.request(req, message)
-      end
+      return do_request request, message
     end
 
-    def paste message
-      x             = Net::HTTP.new(@uri.host, @uri.port)
-      x.use_ssl     = true
-      x.ca_file     = File.expand_path(CA_FILE)
-      x.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    def paste body
+      request = Net::HTTP::Post.new "/room/#{@room}/speak.xml"
+      message = "<message><type>PasteMessage</type><body>#{body}</body></message>"
+      return do_request request, message
+    end
 
-      message = "<message><type>PasteMessage</type><body>#{message}</body></message>"
-
-      x.start do |http|
-        req = Net::HTTP::Post.new "/room/#{@room}/speak.xml"
-        req['Content-Type'] = 'application/xml'
-        req.basic_auth @token, @pass
-        http.request(req, message)
+    def do_request request, message
+      @http.start do |connection|
+        request['Content-Type'] = 'application/xml'
+        request.basic_auth @token, @pass
+        return connection.request(request, message)
       end
     end
   end

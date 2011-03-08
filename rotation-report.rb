@@ -31,8 +31,9 @@ require "#{File.dirname(__FILE__)}/lib/pagerduty"
 require "#{File.dirname(__FILE__)}/lib/report"
 
 INCIDENTS_PATH = '/api/beta/incidents?offset=0&limit=100&sort_by=created_on%3Adesc&status='
-ALERTS_PATH    = '/reports/2011/3?filter=all&time_display=local' 
-ONE_WEEK       = 60 * 60 * 24 * 7
+ALERTS_PATH    = '/reports/2011/3?filter=all&time_display=local'
+ONE_DAY        = 60 * 60 * 24
+ONE_WEEK       = ONE_DAY * 7
 
 pagerduty = PagerDuty::Agent.new
 
@@ -152,8 +153,8 @@ report << "\n"
 # Alert volume
 current_sms_count       = current_alerts.count{|alert| alert.phone_or_sms? }
 previous_sms_count      = previous_alerts.count{|alert| alert.phone_or_sms? }
-current_late_sms_count  = current_alerts.count{|alert| alert.phone_or_sms? and alert.late_night? }
-previous_late_sms_count = previous_alerts.count{|alert| alert.phone_or_sms? and alert.late_night? }
+current_late_sms_count  = current_alerts.count{|alert| alert.phone_or_sms? and alert.graveyard? }
+previous_late_sms_count = previous_alerts.count{|alert| alert.phone_or_sms? and alert.graveyard? }
 
 report << "SMS/Phone Alerts "
 report << "(#{current_sms_count} total, "

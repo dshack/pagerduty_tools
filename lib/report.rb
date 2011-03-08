@@ -34,8 +34,4 @@ module Report
       end
     end
   end
-  
-  def self.sort_by_values_desc(hash)
-    
-  end
 end
