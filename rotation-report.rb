@@ -30,16 +30,42 @@ require "#{File.dirname(__FILE__)}/lib/campfire"
 require "#{File.dirname(__FILE__)}/lib/pagerduty"
 require "#{File.dirname(__FILE__)}/lib/report"
 
-INCIDENTS_PATH = '/api/beta/incidents?echo=1&offset=0&limit=100&sort_by=created_on%3Adesc&status='
+INCIDENTS_PATH = '/api/beta/incidents?offset=0&limit=100&sort_by=created_on%3Adesc&status='
 ALERTS_PATH    = '/reports/2011/3?filter=all&time_display=local' 
 
-# Static dates for now.
-# TODO: need to set these dynamically. From a rotation, maybe?
-current_shift_end    = Time.xmlschema("2011-03-09T14:00:00-05:00")
-current_shift_start  = Time.xmlschema("2011-03-02T14:00:00-05:00")
-previous_shift_start = Time.xmlschema("2011-02-23T14:00:00-05:00")
-
 pagerduty = PagerDuty::Agent.new
+
+#
+# Parse the on-call list.
+#
+escalation   = PagerDuty::Escalation.new ARGV
+page         = pagerduty.fetch "/dashboard"
+oncall_html  = escalation.parse page.body
+target_level = oncall_html.find {|result| result['level'] == "1" }['label']
+
+#
+# Derive the on-call schedule
+#
+current_shift_end    = nil
+current_shift_start  = nil
+previous_shift_start = nil
+
+schedule_page = pagerduty.fetch "/schedule"
+schedule_data = Nokogiri::HTML.parse(schedule_page.body)
+
+schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
+  title = policy.css("div.resource_labels > a").text
+
+  if title == target_level
+    rotation = policy.css("td.rotation_properties div table tr").each do |row|
+      if row.css("td")[0].text =~ /On-call now/i
+        current_shift_start  = Chronic.parse(row.css("td span")[0].text)
+        current_shift_end    = Chronic.parse(row.css("td span")[1].text)
+        previous_shift_start = current_shift_start - (7 * 60 * 60 * 24)
+      end
+    end
+  end
+end
 
 #
 # Parse the incident data.
@@ -50,33 +76,27 @@ pagerduty = PagerDuty::Agent.new
 incidents_json = pagerduty.fetch INCIDENTS_PATH
 incidents_data = JSON.parse(incidents_json.body)
 
+incidents         = []
 resolved_count    = 0
 resolvers         = Hash.new(0)
 current_triggers  = Hash.new(0)
 previous_triggers = Hash.new(0)
 
-# TODO: needs some extraction and cleanup.
-current_incidents = incidents_data['incidents'].select do |incident|
-  created = Time.xmlschema(incident['created_on'])
-  (current_shift_start <=> created) <= 0 and (created <=> current_shift_end) == -1  
+incidents_data['incidents'].each do |incident|
+  incidents << PagerDuty::Incident.new(incident)
 end
 
-current_incidents.each do |incident|
-  if incident['status'] == 'resolved'
-    resolved_count += 1
-    resolvers[incident['resolved_by']['name']] += 1
+incidents.each do |incident| 
+  if incident.between?(current_shift_start, current_shift_end)
+    current_triggers[incident.trigger_name] += 1
+
+    if incident.resolved?
+      resolved_count += 1
+      resolvers[incident.resolver] += 1
+    end  
+  elsif incident.between?(previous_shift_start, current_shift_start)
+    previous_triggers[incident.trigger_name] += 1
   end
-  
-  current_triggers[Report::Incident.trigger_name(incident)] += 1
-end
-
-previous_incidents = incidents_data['incidents'].select do |incident|
-  created = Time.xmlschema(incident['created_on'])
-  (previous_shift_start <=> created) <= 0 and (created <=> current_shift_start) == -1  
-end
-
-previous_incidents.each do |incident|
-  previous_triggers[Report::Incident.trigger_name(incident)] += 1
 end
 
 #
@@ -85,47 +105,52 @@ end
 alerts_html = pagerduty.fetch ALERTS_PATH
 alerts_data = Nokogiri::HTML(alerts_html.body)
 
+alerts             = []
 current_alerts     = []
 previous_alerts    = []
 sms_phone_alertees = Hash.new(0)
 
 alerts_data.css("table#monthly_report_tbl > tbody > tr").each do |row|
-  alert = Report::Alert.new(row.css("td.date").text, row.css("td.type").text, row.css("td.user").text)
-  
-  if (current_shift_start <=> alert.time) <= 0 and (alert.time <=> current_shift_end) == -1
-    current_alerts << alert
-    
-    if alert.phone_or_sms?
-      sms_phone_alertees[alert.user] += 1
-    end
-  elsif (previous_shift_start <=> alert.time) <= 0 and (alert.time <=> current_shift_start) == -1
-    previous_alerts << alert
+  alerts << PagerDuty::Alert.new(row.css("td.date").text, row.css("td.type").text, row.css("td.user").text)
+end
+
+current_alerts  = alerts.select{|alert| alert.between?(current_shift_start, current_shift_end) }
+previous_alerts = alerts.select{|alert| alert.between?(previous_shift_start, current_shift_start) }
+
+current_alerts.each do |alert|
+  if alert.phone_or_sms? 
+    sms_phone_alertees[alert.user] += 1
   end
 end
 
 #
-# Print out the report.
+# Build up the report format.
 #
 report = ""
+
+# Header
 report << "Rotation report for #{current_shift_start.strftime("%B %d")} - "
 report << "#{current_shift_end.strftime("%B %d")}:\n"
 
-incidents_change = Report.pct_change(previous_incidents.count, current_incidents.count)
-report << "  #{current_incidents.count} incidents"
+# Incident volume
+current_incidents  = current_triggers.each_value.inject {|sum, n| sum + n } 
+previous_incidents = previous_triggers.each_value.inject {|sum, n| sum + n } 
+incidents_change   = Report.pct_change(previous_incidents, current_incidents)
 
-if resolved_count != current_incidents.count
-  report << ", #{current_incidents.count - resolved_count} unresolved"
+report << "  #{current_incidents} incidents"
+if resolved_count != current_incidents
+  report << ", #{current_incidents - resolved_count} unresolved"
 end
-
 report << " (#{incidents_change})\n\n"
 
-# TODO: enough with the mega block calls, perldork.
+# Resolutions
 report << "Resolutions:\n  "
 report << resolvers.sort{|a, b| b[1] <=> a[1]}.map{|name, count| "#{name}: #{count}"}.join(", ") + "\n"
 report << "\n"
 
-current_sms_count  = current_alerts.count{|alert| alert.phone_or_sms? }
-previous_sms_count = previous_alerts.count{|alert| alert.phone_or_sms? }
+# Alert volume
+current_sms_count       = current_alerts.count{|alert| alert.phone_or_sms? }
+previous_sms_count      = previous_alerts.count{|alert| alert.phone_or_sms? }
 current_late_sms_count  = current_alerts.count{|alert| alert.phone_or_sms? and alert.late_night? }
 previous_late_sms_count = previous_alerts.count{|alert| alert.phone_or_sms? and alert.late_night? }
 
@@ -137,6 +162,7 @@ report << "#{Report.pct_change(previous_late_sms_count, current_late_sms_count)}
 report << sms_phone_alertees.sort{|a, b| b[1] <=> a[1]}.map{|name, count| "#{name}: #{count}"}.join(", ") + "\n"
 report << "\n"
 
+# Top triggers
 report << "Top triggers:\n"
 top_triggers = current_triggers.sort{|a, b| b[1] <=> a[1]}.map do |trigger, count| 
   trigger_change = Report.pct_change(previous_triggers[trigger], count)
@@ -144,6 +170,10 @@ top_triggers = current_triggers.sort{|a, b| b[1] <=> a[1]}.map do |trigger, coun
 end
 report << top_triggers[0..4].join("\n")
 report << "\n"
+
+#
+# Report output
+#
 
 # TODO: add options.
 #campfire = Campfire::Bot.new

@@ -52,34 +52,13 @@ end
 optparse.parse!
 
 # Log into PagerDuty and get the Dashboard page.
-pagerduty = PagerDuty::Agent.new
-page      = pagerduty.fetch "/dashboard"
-
-# Scrape out the on-call list from the Dashboard HTML.
-dashboard = Nokogiri::HTML(page.body)
-oncall    = dashboard.css("div.whois_oncall").first
-results   = []
-
-oncall.css("div").each do |div|  
-  level_text = div.css("span > strong").text
-  level_text =~ /Level (\d+)\:/
-  level = $1
-  
-  # PagerDuty sometimes adds a comment saying what the rotation is called
-  # for this level. If it's there, use it, or fall back to a generic label.
-  label_text = div.xpath("span/comment()").text
-  label_text =~ /\(<[^>]+>(.+) on-call<\/a>\)/
-  label = $1 || "Level #{level}"
-  
-  person = div.css("span > a").text
-  
-  if (ARGV.length == 0 or ARGV.include?(level))
-    results << "#{label}: #{person}"
-  end
-end
+pagerduty  = PagerDuty::Agent.new
+escalation = PagerDuty::Escalation.new ARGV
+page       = pagerduty.fetch "/dashboard"
+results    = escalation.parse page.body
 
 # Show the current on-call list.
-report = results.join(", ")
+report = results.map{|result| "#{result['label']}: #{result['person']}" }.join(", ")
 
 if (options[:campfire_topic])
   campfire = Campfire::Bot.new

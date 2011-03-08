@@ -107,4 +107,103 @@ module PagerDuty
       return page
     end
   end
+
+  class Escalation
+    def initialize levels=nil
+      # Scrape out the on-call list from the Dashboard HTML.
+      @levels    = levels
+    end
+
+    def parse page_body
+      oncall  = Nokogiri::HTML(page_body).css("div.whois_oncall").first
+      results = []
+      
+      oncall.css("div").each do |div|  
+        level_text = div.css("span > strong").text
+        level_text =~ /Level (\d+)\:/
+        level = $1
+
+        # PagerDuty sometimes adds a comment saying what the rotation is called
+        # for this level. If it's there, use it, or fall back to a generic label.
+        label_text = div.xpath("span/comment()").text
+        label_text =~ /\(<[^>]+>(.+) on-call<\/a>\)/
+        label = $1 || "Level #{level}"
+
+        person = div.css("span > a").text
+
+        if (@levels == nil or @levels.length == 0 or @levels.include?(level))
+          results << {'level', level, 'label', label, 'person', person}
+        end
+      end
+
+      return results
+    end
+  end
+
+  class Alert
+    attr_accessor(:time, :type, :user)
+
+    def initialize time, type, user
+      @time = Chronic.parse(time)
+      @type = type
+      @user = user
+    end
+
+    def between?(start_time, end_time)
+      # `time` equals or is after `start_time`, and is before `end_time`
+      (start_time <=> time) <= 0 and (time <=> end_time) == -1
+    end
+
+    def late_night?
+      # We don't like waking people up. Assume a risk of that between 
+      # 10p and 8a localtime.
+      (time.hour < 8 or time.hour >= 22)
+    end
+    
+    def phone_or_sms?
+      type == "Phone" or type == "SMS"
+    end
+    
+    def email?
+      type == "Email"
+    end
+  end
+  
+  class Incident
+    attr_accessor(:created_on, :status, :resolver, :service, :event)
+
+    def initialize incident
+      @created_on = Time.xmlschema(incident['created_on'])
+      @status     = incident['status']
+      @service    = incident['service']['name']
+      @event      = incident['trigger_details']['event']
+
+      if status == 'resolved'
+        if incident['resolved_by'] == nil and service == "Nagios"
+          @resolver = "[Automatic]"
+        else
+          @resolver = incident['resolved_by']['name']
+        end
+      end
+    end
+
+    def resolved?
+      status == 'resolved'
+    end
+
+    def between?(start_time, end_time)
+      # `time` equals or is after `start_time`, and is before `end_time`
+      (start_time <=> created_on) <= 0 and (created_on <=> end_time) == -1
+    end
+    
+    def trigger_name
+      if (service == "Nagios")
+        return "Nagios: #{event['host']} - #{event['service']}"
+      elsif (service == "Pingdom")
+        return "Pingdom: #{event['description']}"
+      else
+        return "Unknown event"
+      end  
+    end
+  end
 end

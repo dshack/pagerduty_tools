@@ -17,16 +17,16 @@
 require 'chronic'
 
 module Report
-  def self.pct_change old_value, new_value
-    if (old_value == 0)
+  def self.pct_change(old_value, new_value)
+    if old_value == 0
       return "no occurrences last week"
     else
       change = (((new_value.to_f - old_value.to_f) / old_value.to_f) * 100).to_i
 
-      if (change == 0)
+      if change == 0
         return "no change vs. last week"
 
-      elsif (change < 0)
+      elsif change < 0
         return "#{change}% vs. last week"
 
       else
@@ -34,44 +34,8 @@ module Report
       end
     end
   end
-
-  class Incident
-    def self.trigger_name incident
-      event = incident['trigger_details']['event']
-
-      if (incident['service']['name'] == "Nagios")
-        return "Nagios: #{event['host']} - #{event['service']}"
+  
+  def self.sort_by_values_desc(hash)
     
-      elsif (incident['service']['name'] == "Pingdom")
-        return "Pingdom: #{event['description']}"
-    
-      else
-        return "Unknown event"
-      end  
-    end
-  end
-
-  class Alert
-    attr_accessor(:time, :type, :user)
-
-    def initialize time, type, user
-      @time = Chronic.parse(time)
-      @type = type
-      @user = user
-    end
-
-    def late_night?
-      # We don't like waking people up. Assume a risk of that between 
-      # 10p and 8a localtime.
-      (time.hour < 8 or time.hour >= 22)
-    end
-    
-    def phone_or_sms?
-      type == "Phone" or type == "SMS"
-    end
-    
-    def email?
-      type == "Email"
-    end
   end
 end
