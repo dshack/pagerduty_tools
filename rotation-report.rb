@@ -42,21 +42,21 @@ options = {}
 optparse = OptionParser.new do |opts|
   opts.banner = "Usage: rotation-report.rb [-a COUNT] [-m]"
 
-  options[:rotations_ago] = 0
+  options[:rotations_ago] = 1
   opts.on('-a', '--rotations-ago COUNT', Integer,
-          "Rotations back from current to report on (defaults to current)") do |rotations_ago|
+          "Rotations back from current to report on (defaults to 1)") do |rotations_ago|
     options[:rotations_ago] = rotations_ago
   end
 
   options[:start_time] = nil
   opts.on('-s', '--start-time DATETIME',
-          "Start of report (ex: '2011-03-02T14:00:00-05:00', defaults to current)") do |time|
+          "Start of report (ex: '2011-03-02T14:00:00-05:00', defaults to last rotation)") do |time|
     options[:start_time] = time
   end
 
   options[:end_time] = nil
   opts.on('-e', '--end-time DATETIME',
-          "End of report (ex: '2011-03-09T14:00:00-05:00', defaults to current)") do |time|
+          "End of report (ex: '2011-03-09T14:00:00-05:00', defaults to last rotation)") do |time|
     options[:end_time] = time
   end
 
