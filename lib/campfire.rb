@@ -55,10 +55,8 @@ module Campfire
     def topic(topic)
       request = Net::HTTP::Put.new "/room/#{@room}.xml"
       message = Nokogiri::XML::Builder.new do |xml|
-        xml.root {
-          xml.room {
-            xml.topic topic
-          }
+        xml.room {
+          xml.topic topic
         }
       end
       return do_request(request, message.to_xml)
@@ -67,11 +65,9 @@ module Campfire
     def paste(body)
       request = Net::HTTP::Post.new("/room/#{@room}/speak.xml")
       message = Nokogiri::XML::Builder.new do |xml|
-        xml.root {
-          xml.message {
-            xml.type "PasteMessage"
-            xml.body body
-          }
+        xml.message {
+          xml.type_ "PasteMessage"
+          xml.body body
         }
       end
       return do_request(request, message.to_xml)
