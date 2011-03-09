@@ -48,10 +48,9 @@ with the values changed to match your configuration. I'd recommend running:
 after creating the file. See the documentation for each script for how to send
 output to Campfire.
 
-Also, there is an icon suitable for use as a PagerDuty Campfire user account
-icon in images/pagerduty-campfire-icon.png.  (All PagerDuty trademarks are 
-property of PagerDuty, of course.)  This isn't necessary, but it makes the
-PagerDuty message more recognizable and nicer. (See example above.)
+Tip: you can use [PagerDuty's Twitter icon](https://twitter.com/pagerduty) as
+a profile icon for your Campfire PagerDuty account. This isn't necessary, but
+it makes the PagerDuty message more recognizable and nicer.
 
 # oncall.rb #
 
