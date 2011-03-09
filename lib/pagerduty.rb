@@ -131,10 +131,10 @@ module PagerDuty
         label_text = div.xpath("span/comment()").text
         label = label_text[/\(<[^>]+>(.+) on-call<\/a>\)/, 1] || "Level #{level}"
 
-        person = div.css("span > a").text
+        person = div.css("span > a")
 
-        if @levels.nil? or @levels.length == 0 or @levels.include?(level)
-          @results << {'level' => level, 'label' => label, 'person' => person}
+        if @levels == nil or @levels.length == 0 or @levels.include?(level)
+          @results << {'level' => level, 'label' => label, 'person' => person.text, 'person_path' => person.first['href']}
         end
       end
 
@@ -214,6 +214,16 @@ module PagerDuty
       else
         return "[Unknown event]"
       end
+    end
+  end
+
+  class Person
+    attr_accessor :email
+    
+    def parse page_body
+      user = Nokogiri::HTML(page_body).css("div#user_profile").first
+      div = user.css("div").first
+      @email = div.css("td > a").text
     end
   end
 end
