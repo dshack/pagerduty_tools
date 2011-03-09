@@ -16,8 +16,8 @@
 
 # rotation-report.rb -- automatically generate an end-of-shift report.
 #
-# Gathers information about incidents during a PagerDuty rotation, and
-# reports on them.
+# Gathers information about incidents and alerts during a PagerDuty
+# rotation, and reports on them.
 
 require 'rubygems'
 require 'bundler/setup'
@@ -97,6 +97,8 @@ previous_start = nil
 previous_end   = nil
 
 schedule_page = pagerduty.fetch "/schedule"
+
+# TODO: move the Nokogiri parsing into lib and outta here.
 schedule_data = Nokogiri::HTML.parse schedule_page.body
 
 schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
@@ -104,6 +106,13 @@ schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
 
   if title == target_level
     rotation = policy.css("td.rotation_properties div table tr").each do |row|
+      # This is a bad approach. It takes the on-call schedule start and end
+      # from the current on-call assignment; that works fine if it's a normal
+      # rotation, but if an irregular-length exception is set, it messes up
+      # the whole report span.
+      #
+      # It would be better to figure out the normal rotation schedule,
+      # regardless of any exceptions or assignments, and work from that.
       if row.css("td")[0].text =~ /On-call now/i
         period_offset = ONE_WEEK * options[:rotations_ago]
         if options[:start_time]
@@ -138,24 +147,26 @@ end
 #
 # Parse the incident data.
 #
-
 incidents = Report::Summary.new current_start, current_end, previous_start, previous_end
 
 # Use a method definition to let us return out of the while loop and block.
 # REVIEW: this is a little heavy-handed; there's probably a better approach.
-def collect_incidents pagerduty, incidents
+def collect_incidents(pagerduty, incidents)
   offset = 0
 
   while offset < 1000 # just a safety killswitch
     incidents_path = "/api/beta/incidents?offset=#{offset}&limit=100&sort_by=created_on%3Adesc&status="
     incidents_json = pagerduty.fetch incidents_path
+
+    # TODO: move the JSON decoding into lib.
     incidents_data = JSON.parse(incidents_json.body)
 
     incidents_data['incidents'].each do |incident_data|
       incident = PagerDuty::Incident.new(incident_data)
+
       if incident.between?(incidents.previous_start, incidents.current_end)
         incidents << incident
-      elsif (incident.time <=> incidents.previous_start) == -1
+      elsif incident.time < incidents.previous_start
         # This incident is before the time frame we care about, so stop
         # parsing from the incident list (which is sorted by date descending).
         return
@@ -177,9 +188,11 @@ triggers   = incidents.current_summary {|incident, summary| summary[incident.tri
 #
 alerts = Report::Summary.new current_start, current_end, previous_start, previous_end
 
-def collect_alerts pagerduty, alerts, year, month
+def collect_alerts(pagerduty, alerts, year, month)
   alerts_path = "/reports/#{year}/#{month}?filter=all&time_display=local"
   alerts_html = pagerduty.fetch alerts_path
+
+  # TODO: move the Nokogiri parsing into lib.
   alerts_data = Nokogiri::HTML(alerts_html.body)
 
   alerts_data.css("table#monthly_report_tbl > tbody > tr").each do |row|

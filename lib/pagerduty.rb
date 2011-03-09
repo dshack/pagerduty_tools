@@ -43,54 +43,7 @@ module PagerDuty
       find_domain
     end
 
-    def load_cookies
-      if File.exist?(@cookie_file)
-        @agent.cookie_jar.load(@cookie_file)
-
-        # Try to find the user's PagerDuty domain from their auth_token cookie.
-        token = @agent.cookie_jar.to_a.select { |cookie| cookie.name == "auth_token" }.first
-
-        if token
-          @domain = token.domain
-        end
-      end
-    end
-
-    def find_domain
-      if (!@domain)
-        @email = ask(EMAIL_PROMPT)
-
-        accounts_search_page = @agent.get URI.parse "http://app.pagerduty.com/accounts/search"
-        account_form = accounts_search_page.form_with(:action => "/accounts/search_results")
-        account_form.email = @email
-
-        search_results_page = account_form.submit
-        search_results = Nokogiri::HTML(search_results_page.body)
-        account_list = search_results.css("ul.accounts_list")
-        domains = account_list.css("a").map { |account| URI.parse(account["href"]).host }
-
-        if domains.count == 0
-          puts "No PagerDuty accounts found for that address."
-        elsif domains.count == 1
-          @domain = domains.first
-        else
-          say(ACCOUNT_PROMPT)
-          @domain = choose(*domains)
-        end
-      end
-    end
-
-    def login page
-      login_form = page.form_with(:action => "/session")
-
-      @email ||= ask(EMAIL_PROMPT)
-      login_form.email = @email
-      login_form.password = ask(PASSWORD_PROMPT) {|q| q.echo = "*" }
-      
-      return login_form.submit
-    end
-
-    def fetch path
+    def fetch(path)
       uri  = URI.parse "https://#{@domain}#{path}"
       page = @agent.get uri
 
@@ -107,14 +60,63 @@ module PagerDuty
 
       return page
     end
+
+    private
+
+    def load_cookies
+      if File.exist?(@cookie_file)
+        @agent.cookie_jar.load(@cookie_file)
+
+        # Try to find the user's PagerDuty domain from their auth_token cookie.
+        token = @agent.cookie_jar.to_a.select { |cookie| cookie.name == "auth_token" }.first
+
+        if token
+          @domain = token.domain
+        end
+      end
+    end
+
+    def find_domain
+      return if @domain
+
+      @email = ask(EMAIL_PROMPT)
+
+      accounts_search_page = @agent.get URI.parse "http://app.pagerduty.com/accounts/search"
+      accounts_search_form = accounts_search_page.form_with(:action => "/accounts/search_results")
+      accounts_search_form.email = @email
+
+      search_results_page = account_form.submit
+      search_results = Nokogiri::HTML(search_results_page.body)
+      account_list = search_results.css("ul.accounts_list")
+      domains = account_list.css("a").map { |account| URI.parse(account["href"]).host }
+
+      if domains.count == 0
+        puts "No PagerDuty accounts found for that address."
+      elsif domains.count == 1
+        @domain = domains.first
+      else
+        say(ACCOUNT_PROMPT)
+        @domain = choose(*domains)
+      end
+    end
+
+    def login(page)
+      login_form = page.form_with(:action => "/session")
+      @email   ||= ask(EMAIL_PROMPT)
+
+      login_form.email    = @email
+      login_form.password = ask(PASSWORD_PROMPT) {|q| q.echo = "*" }
+
+      return login_form.submit
+    end
   end
 
   class Escalation
-    def initialize levels=nil
+    def initialize(levels=nil)
       @levels = levels
     end
 
-    def parse dashboard_body
+    def parse(dashboard_body)
       # Scrape out the on-call list from the Dashboard HTML.
       oncall  = Nokogiri::HTML(dashboard_body).css("div.whois_oncall").first # whois oncall first? ha!
       @results = []
@@ -127,12 +129,11 @@ module PagerDuty
         # PagerDuty sometimes adds a comment saying what the rotation is called
         # for this level. If it's there, use it, or fall back to a generic label.
         label_text = div.xpath("span/comment()").text
-        label_text =~ /\(<[^>]+>(.+) on-call<\/a>\)/
-        label = $1 || "Level #{level}"
+        label = label_text[/\(<[^>]+>(.+) on-call<\/a>\)/, 1] || "Level #{level}"
 
         person = div.css("span > a").text
 
-        if @levels == nil or @levels.length == 0 or @levels.include?(level)
+        if @levels.nil? or @levels.length == 0 or @levels.include?(level)
           @results << {'level' => level, 'label' => label, 'person' => person}
         end
       end
@@ -140,23 +141,23 @@ module PagerDuty
       return @results
     end
 
-    def label_for_level level
+    def label_for_level(level)
       @results.find {|result| result['level'] == level }['label']
     end
 
-    def label_for_person person
+    def label_for_person(person)
       @results.find {|result| result['person'] == person }['label']
     end
 
-    def level_for_person person
+    def level_for_person(person)
       @results.find {|result| result['person'] == person }['level']
     end
   end
 
   class Alert < Report::Item
-    attr_accessor(:type, :user)
+    attr_accessor :type, :user
 
-    def initialize time, type, user
+    def initialize(time, type, user)
       # This charming little chunk works around an apparent bug in Chronic:
       # if the parsed month is the same as the current month, :context =>
       # :past will fail to set the month correctly.  (Looks like
@@ -183,16 +184,16 @@ module PagerDuty
   end
 
   class Incident < Report::Item
-    attr_accessor(:status, :resolver, :service, :event)
+    attr_accessor :status, :resolver, :service, :event
 
-    def initialize incident
+    def initialize(incident)
       super(Time.xmlschema(incident['created_on']))
       @status  = incident['status']
       @service = incident['service']['name']
       @event   = incident['trigger_details']['event']
 
       if status == 'resolved'
-        if incident['resolved_by'] == nil and service == "Nagios"
+        if incident['resolved_by'].nil? and service == "Nagios"
           @resolver = "[Automatic]"
         else
           @resolver = incident['resolved_by']['name']
@@ -205,9 +206,10 @@ module PagerDuty
     end
 
     def trigger_name
-      if service == "Nagios"
+      case service
+      when "Nagios"
         return "Nagios: #{event['host']} - #{event['service']}"
-      elsif service == "Pingdom"
+      when "Pingdom"
         return "Pingdom: #{event['description']}"
       else
         return "[Unknown event]"

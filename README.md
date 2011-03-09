@@ -123,6 +123,8 @@ Thanks to the following people for contributions!
 
 * [Jeffrey Wescott](https://github.com/binaryfeed)
 * [André Arko](https://github.com/indirect)
+* [Brian Donovan](https://github.com/eventualbuddha)
+* [Brad Greenlee](https://github.com/bgreenlee)
 
 # License #
 

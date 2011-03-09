@@ -29,6 +29,7 @@
 # (with the values changed to match your configuration).
 
 require 'net/http'
+require 'nokogiri'
 require 'uri'
 require 'yaml'
 
@@ -39,7 +40,7 @@ module Campfire
   class Bot
     def initialize
       # TODO: make sure that the file is there and that all the keys are, too.
-      config = YAML::load(File.open(File.expand_path(CONFIG_FILE)))
+      config = YAML.load_file(File.expand_path(CONFIG_FILE))
       @uri   = URI.parse config["site"]
       @room  = config["room"]
       @token = config["token"]
@@ -51,19 +52,34 @@ module Campfire
       @http.verify_mode = OpenSSL::SSL::VERIFY_PEER
     end
 
-    def topic topic
+    def topic(topic)
       request = Net::HTTP::Put.new "/room/#{@room}.xml"
-      message = "<room><topic>#{topic}</topic></room>"
-      return do_request request, message
+      message = Nokogiri::XML::Builder.new do |xml|
+        xml.root {
+          xml.room {
+            xml.topic topic
+          }
+        }
+      end
+      return do_request(request, message.to_xml)
     end
 
-    def paste body
-      request = Net::HTTP::Post.new "/room/#{@room}/speak.xml"
-      message = "<message><type>PasteMessage</type><body>#{body}</body></message>"
-      return do_request request, message
+    def paste(body)
+      request = Net::HTTP::Post.new("/room/#{@room}/speak.xml")
+      message = Nokogiri::XML::Builder.new do |xml|
+        xml.root {
+          xml.message {
+            xml.type "PasteMessage"
+            xml.body body
+          }
+        }
+      end
+      return do_request(request, message.to_xml)
     end
 
-    def do_request request, message
+    private
+
+    def do_request(request, message)
       @http.start do |connection|
         request['Content-Type'] = 'application/xml'
         request.basic_auth @token, @pass
