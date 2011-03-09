@@ -1,10 +1,16 @@
 # pagerduty-tools #
 
-Tools to work around the current limitations in the
-[PagerDuty](http://www.pagerduty.com)
-[API](http://www.pagerduty.com/docs/api/api-documentation).
+Tools to work around limitations in the [PagerDuty](http://www.pagerduty.com)
+[API](http://www.pagerduty.com/docs/api/api-documentation). As an example use,
+here are two Campfire updates from these scripts that set the room topic to
+the current on-call rotation, and then report on the incidents and alerts from
+the previous rotation:
+
+![campfire example](https://github.com/precipice/pagerduty-tools/raw/master/images/campfire-example.png)
 
 ## Installing ##
+
+Ruby 1.8.7 or later is required.
 
 First, clone the GitHub repo:
 
@@ -19,32 +25,17 @@ Then install required gems via Bundler:
 
     $ bundle install
 
-# oncall.rb #
-
-The `oncall.rb` script reports who is currently on call for your PagerDuty
-account. Invoked with no arguments, it will list all on-call levels (1..n). If
-one or more levels are given as arguments, it will only list those levels.
-
-The script logs into the PagerDuty site when first run. Your email address
+The scripts log into the PagerDuty site when first run. Your email address
 will be used to find associated PagerDuty accounts, and you can choose the
 account you want to report on. After the first run, a login cookie is kept in
-your home directory to allow future runs to be automatic (e.g., from cron).
-
-The output of the script is meant to be suitable for use as a Campfire room
-topic, which is how we're currently using it. (Pull requests welcome if you
-want another output format.)
-
-If the on call level has an associated on-call rotation, the name of that
-rotation is used in the output. Otherwise, a generic `Level <#>` format is
-used.
-
-Calling the script with `-h` or `--help` will display some help.
+`~/.pagerduty-cookies` to allow future runs to be automatic (e.g., from cron).
 
 ## Campfire Support ##
 
-If you would like to have your current PagerDuty rotation assignments listed
-as the topic of a [Campfire](http://www.campfirenow.com) room, add a
-configuration file at `~/.pagerduty-campfire.yaml` containing the following:
+If you would like to have PagerDuty reports sent to your
+[Campfire](http://www.campfirenow.com) room, create a "PagerDuty" user in your
+Campfire account, and then add a configuration file at
+`~/.pagerduty-campfire.yaml` containing the following:
 
     site:  https://example.campfirenow.com
     room:  99999
@@ -54,10 +45,30 @@ with the values changed to match your configuration. I'd recommend running:
 
     $ chmod 0600 ~/.pagerduty-campfire.yaml
 
-after creating it. You can then invoke oncall.rb with a `-t` or
-`--campfire-topic` option, and the output of the script will be set as the
-topic for the configured room. We do this out of cron right after the rotation
+after creating the file. See the documentation for each script for how to send
+output to Campfire.
+
+Also, there is an icon suitable for use as a PagerDuty Campfire user account
+icon in images/pagerduty-campfire-icon.png.  (All PagerDuty trademarks are 
+property of PagerDuty, of course.)  This isn't necessary, but it makes the
+PagerDuty message more recognizable and nicer. (See example above.)
+
+# oncall.rb #
+
+The `oncall.rb` script reports who is currently on call for your PagerDuty
+account. Invoked with no arguments, it will list all on-call levels (1..n). If
+one or more levels are given as arguments, it will only list those levels.
+
+If the on call level has an associated on-call rotation, the name of that
+rotation is used in the output. Otherwise, a generic `Level <#>` format is
+used.
+
+You can invoke oncall.rb with a `-t` or `--campfire-topic` option, and the
+output of the script will be set as the topic for the configured room (see
+__Campfire Support__, above). We do this out of cron right after the rotation
 turns over to a new assignment.
+
+Calling the script with `-h` or `--help` will display some help.
 
 ## Examples ##
 
@@ -78,7 +89,7 @@ to show what happened over the course of a rotation. It measures how many
 incidents occurred, shows who resolved them, and shows how many alerts people
 got (including a breakout of after-midnight alerts, which we all must strive
 to eradicate!). Also, it lists the top five causes for alerts during the
-rotation.
+rotation, and compares the counts to the same period one week earlier.
 
 Here's an example:
 
@@ -98,17 +109,19 @@ Here's an example:
       1 'Nagios: vip-redisapi - check_live_redis_lag' (-66% vs. last week)
       1 'Pingdom: DOWN alert: client-nike (www.nike.com) is DOWN' (no occurrences last week)
 
-By default the script will report on the currently in-progress rotation.
+By default the script will report on the most recently-completed rotation.
 However, you can use the `-a`|`--rotations-ago COUNT` option to specify how
-far back in history you want to go. (Currently, only weekly rotations are
-supported for history.)
+far back in history you want to go. Or, you can use `-s`|`--start-time DATETIME`
+and `-e`|`--end-time DATETIME` (giving the date in
+[ISO 8601](http://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations)
+date and time format, e.g. "2011-03-02T14:00:00-05:00") to set a specific range
+for the report.
 
-## Campfire Support ##
+Calling rotation-report.rb with a `-m`|`--campfire-message` argument will
+cause the rotation report to be pasted into the configured Campfire room. (See
+__Campfire Support__, above, for information about setting this up.)
 
-See __Campfire Support__ under *oncall.rb* for information about setting up
-Campfire support. Calling rotation-report.rb with a `-m`|`--campfire-message`
-argument will cause the rotation report to be pasted into the configured Campfire
-room.
+Calling the script with `-h` or `--help` will display some help.
 
 # alerts-by-day.rb #
 
