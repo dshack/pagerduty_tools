@@ -40,7 +40,7 @@ ONE_WEEK = ONE_DAY * 7
 options = {}
 
 optparse = OptionParser.new do |opts|
-  opts.banner = "Usage: rotation-report.rb [-a COUNT] [-c]"
+  opts.banner = "Usage: rotation-report.rb [-a COUNT] [-m]"
 
   options[:rotations_ago] = 0
   opts.on('-a', '--rotations-ago COUNT', Integer,
@@ -49,7 +49,7 @@ optparse = OptionParser.new do |opts|
   end
 
   options[:campfire_message] = false
-  opts.on('-c', '--campfire-message', "Paste the results as message in a Campfire room") do
+  opts.on('-m', '--campfire-message', "Paste the results as message in a Campfire room") do
     options[:campfire_message] = true
   end
 

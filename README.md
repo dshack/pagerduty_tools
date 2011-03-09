@@ -77,7 +77,7 @@ The `rotation-report.rb` script generates an automatic "end of shift" report
 to show what happened over the course of a rotation. It measures how many
 incidents occurred, shows who resolved them, and shows how many alerts people
 got (including a breakout of after-midnight alerts, which we all must strive
-to iradicate!). Also, it lists the top five causes for alerts during the
+to eradicate!). Also, it lists the top five causes for alerts during the
 rotation.
 
 Here's an example:
@@ -106,7 +106,7 @@ supported for history.)
 ## Campfire Support ##
 
 See __Campfire Support__ under *oncall.rb* for information about setting up
-Campfire support. Calling rotation-report.rb with a `-c`|`--campfire-message`
+Campfire support. Calling rotation-report.rb with a `-m`|`--campfire-message`
 argument will cause the rotation report to be pasted into the configured Campfire
 room.
 
