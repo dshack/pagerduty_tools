@@ -25,21 +25,49 @@ require 'bundler/setup'
 require 'date'
 require 'json'
 require 'nokogiri'
+require 'optparse'
 
 require "#{File.dirname(__FILE__)}/lib/campfire"
 require "#{File.dirname(__FILE__)}/lib/pagerduty"
 require "#{File.dirname(__FILE__)}/lib/report"
 
-ONE_DAY        = 60 * 60 * 24
-ONE_WEEK       = ONE_DAY * 7
+ONE_DAY  = 60 * 60 * 24
+ONE_WEEK = ONE_DAY * 7
 
-pagerduty = PagerDuty::Agent.new
+#
+# Look for reporting options
+#
+options = {}
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: rotation-report.rb [-a COUNT] [-c]"
+
+  options[:rotations_ago] = 0
+  opts.on('-a', '--rotations-ago COUNT', Integer,
+          "Rotations back from current to report on (defaults to current)") do |rotations_ago|
+    options[:rotations_ago] = rotations_ago
+  end
+
+  options[:campfire_message] = false
+  opts.on('-c', '--campfire-message', "Paste the results as message in a Campfire room") do
+    options[:campfire_message] = true
+  end
+
+  opts.on('-h', '--help', 'Display this message') do
+    puts opts
+    exit
+  end
+end
+
+optparse.parse!
 
 #
 # Parse the on-call list.
 #
-escalation   = PagerDuty::Escalation.new
-dashboard    = pagerduty.fetch "/dashboard"
+pagerduty  = PagerDuty::Agent.new
+escalation = PagerDuty::Escalation.new
+dashboard  = pagerduty.fetch "/dashboard"
+
 escalation.parse dashboard.body
 target_level = escalation.label_for_level "1"
 
@@ -65,8 +93,9 @@ schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
   if title == target_level
     rotation = policy.css("td.rotation_properties div table tr").each do |row|
       if row.css("td")[0].text =~ /On-call now/i
-        current_start  = Chronic.parse(row.css("td span")[0].text)
-        current_end    = Chronic.parse(row.css("td span")[1].text)
+        period_offset = ONE_WEEK * options[:rotations_ago]
+        current_start = Chronic.parse(row.css("td span")[0].text) - period_offset
+        current_end   = Chronic.parse(row.css("td span")[1].text) - period_offset
 
         # Shifts are either one day or one week (currently, at least).
         # For a week-long shift, we want the previous full week. For a day
@@ -105,7 +134,9 @@ def collect_incidents pagerduty, incidents
       incident = PagerDuty::Incident.new(incident_data)
       if incident.between?(incidents.previous_start, incidents.current_end)
         incidents << incident
-      else
+      elsif (incident.time <=> incidents.previous_start) == -1
+        # This incident is before the time frame we care about, so stop
+        # parsing from the incident list (which is sorted by date descending).
         return
       end
     end
@@ -164,16 +195,7 @@ report << " (#{incidents.pct_change})\n\n"
 
 # Resolutions
 report << "Resolutions:\n  "
-resolver_report = resolvers.map do |name, count|
-  important_levels = ["1", "2"]
-  # TODO: make this a command-line option
-  if important_levels.include? escalation.level_for_person(name) 
-    "#{name} (#{escalation.label_for_person(name)}): #{count}"
-  else
-    "#{name}: #{count}"
-  end
-end
-report << resolver_report.join(", ") + "\n"
+report << resolvers.map {|name, count| "#{name}: #{count}" }.join(", ") + "\n"
 report << "\n"
 
 # Alert volume
@@ -197,11 +219,10 @@ report << "\n"
 #
 # Report output
 #
-
-# TODO: add options.
-#campfire = Campfire::Bot.new
-#campfire.paste report
-
-print report
-
+if options[:campfire_message]
+  campfire = Campfire::Bot.new
+  campfire.paste report
+else
+  print report
+end
 

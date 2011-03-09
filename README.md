@@ -43,8 +43,8 @@ Calling the script with `-h` or `--help` will display some help.
 ## Campfire Support ##
 
 If you would like to have your current PagerDuty rotation assignments listed
-as the topic of a Campfire room, add a configuration file at
-`~/.pagerduty-campfire.yaml` containing the following:
+as the topic of a [Campfire](http://www.campfirenow.com) room, add a
+configuration file at `~/.pagerduty-campfire.yaml` containing the following:
 
     site:  https://example.campfirenow.com
     room:  99999
@@ -71,13 +71,58 @@ turns over to a new assignment.
     [No shell output, but the configured Campfire room's topic becomes:
     "Hotseat: John Henry, Hotseat Backup: Lisa Limon"]
 
+# rotation-report.rb #
+
+The `rotation-report.rb` script generates an automatic "end of shift" report
+to show what happened over the course of a rotation. It measures how many
+incidents occurred, shows who resolved them, and shows how many alerts people
+got (including a breakout of after-midnight alerts, which we all must strive
+to iradicate!). Also, it lists the top five causes for alerts during the
+rotation.
+
+Here's an example:
+
+    Rotation report for February 23 - March 02:
+      19 incidents (-9% vs. last week)
+
+    Resolutions:
+      John Henry: 8, George Harrison: 4, Scott Brinkley: 4, Jason Neeson: 2, [Automatic]: 1
+
+    SMS/Phone Alerts (62 total, +77% vs. last week; 6 after midnight, -53% vs. last week):
+      John Henry: 44, George Harrison: 10, Jason Neeson: 4, Scott Brinkley: 4
+
+    Top triggers:
+      6 'Pingdom: DOWN alert: example-health (www.example.com) is DOWN' (-14% vs. last week)
+      5 'Pingdom: DOWN alert: sg-health (sg.example.com) is DOWN' (no occurrences last week)
+      4 'Nagios: vip-api - check_api_lag' (+300% vs. last week)
+      1 'Nagios: vip-redisapi - check_live_redis_lag' (-66% vs. last week)
+      1 'Pingdom: DOWN alert: client-nike (www.nike.com) is DOWN' (no occurrences last week)
+
+By default the script will report on the currently in-progress rotation.
+However, you can use the `-a`|`--rotations-ago COUNT` option to specify how
+far back in history you want to go. (Currently, only weekly rotations are
+supported for history.)
+
+## Campfire Support ##
+
+See __Campfire Support__ under *oncall.rb* for information about setting up
+Campfire support. Calling rotation-report.rb with a `-c`|`--campfire-message`
+argument will cause the rotation report to be pasted into the configured Campfire
+room.
+
 # alerts-by-day.rb #
 
 This script is being revised and doesn't work with the rest of the package yet.
 
-# rotation-report.rb #
+# Contributions #
 
-This one is brand-new and doesn't do much yet.
+Pull requests welcome. There are no tests or specs yet, so hey, contributing
+couldn't be easier.
+
+Thanks to the following people for contributions!
+
+* [Jeffrey Wescott](https://github.com/binaryfeed)
+* [André Arko](https://github.com/indirect)
 
 # License #
 
