@@ -48,8 +48,20 @@ optparse = OptionParser.new do |opts|
     options[:rotations_ago] = rotations_ago
   end
 
+  options[:start_time] = nil
+  opts.on('-s', '--start-time DATETIME',
+          "Start of report (ex: '2011-03-02T14:00:00-05:00', defaults to current)") do |time|
+    options[:start_time] = time
+  end
+
+  options[:end_time] = nil
+  opts.on('-e', '--end-time DATETIME',
+          "End of report (ex: '2011-03-09T14:00:00-05:00', defaults to current)") do |time|
+    options[:end_time] = time
+  end
+
   options[:campfire_message] = false
-  opts.on('-m', '--campfire-message', "Paste the results as message in a Campfire room") do
+  opts.on('-m', '--campfire-message', "Paste the results as message in configured Campfire room") do
     options[:campfire_message] = true
   end
 
@@ -94,8 +106,17 @@ schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
     rotation = policy.css("td.rotation_properties div table tr").each do |row|
       if row.css("td")[0].text =~ /On-call now/i
         period_offset = ONE_WEEK * options[:rotations_ago]
-        current_start = Chronic.parse(row.css("td span")[0].text) - period_offset
-        current_end   = Chronic.parse(row.css("td span")[1].text) - period_offset
+        if options[:start_time]
+          current_start = Time.xmlschema(options[:start_time]) - period_offset
+        else
+          current_start = Chronic.parse(row.css("td span")[0].text) - period_offset
+        end
+
+        if options[:end_time]
+          current_end = Time.xmlschema(options[:end_time]) - period_offset
+        else
+          current_end = Chronic.parse(row.css("td span")[1].text) - period_offset
+        end
 
         # Shifts are either one day or one week (currently, at least).
         # For a week-long shift, we want the previous full week. For a day
