@@ -116,13 +116,15 @@ schedule_data.css("table#schedule_index div.rotation_strip").each do |policy|
       if row.css("td")[0].text =~ /On-call now/i
         period_offset = ONE_WEEK * options[:rotations_ago]
         if options[:start_time]
-          current_start = Time.xmlschema(options[:start_time]) - period_offset
+          current_start = Time.xmlschema(options[:start_time])
         else
           current_start = Chronic.parse(row.css("td span")[0].text) - period_offset
         end
 
+        # TODO: make the date range sensible if only one of start_time or end_time
+        # is given.
         if options[:end_time]
-          current_end = Time.xmlschema(options[:end_time]) - period_offset
+          current_end = Time.xmlschema(options[:end_time])
         else
           current_end = Chronic.parse(row.css("td span")[1].text) - period_offset
         end
