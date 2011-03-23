@@ -52,6 +52,14 @@ Tip: you can use [PagerDuty's Twitter icon](https://twitter.com/pagerduty) as
 a profile icon for your Campfire PagerDuty account. This isn't necessary, but
 it makes the PagerDuty message more recognizable and nicer.
 
+## Limitations ##
+
+* The rotation-report.rb script works well for weekly rotations with no
+  exceptions set. It might work well for daily rotations (comparing to the
+  same day one week ago), but hasn't been tested for that; and it fails
+  completely if any of the weeks compared have an exception set.
+* Login and other errors from PagerDuty's site are not parsed or reported.
+
 # oncall.rb #
 
 The `oncall.rb` script reports who is currently on call for your PagerDuty
