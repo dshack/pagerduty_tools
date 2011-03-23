@@ -14,15 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# oncall.rb -- find and list the people currently on call for PagerDuty.
+# oncall-email.rb -- Notify on-call people about shift start.
 #
-# This scrapes a list of on-call assignments out of the PagerDuty Dashboard.
-# You can specify which rotation levels you want to find, by giving one or
-# more level numbers as arguments. If no arguments are given, all levels are
-# reported.
-#
-# PagerDuty login cookies will be stored at ~/.pagerduty-cookies, so you
-# should only need to enter login credentials on the first run.
+# Original script contributed by Jeffrey Wescott
+# (https://github.com/binaryfeed). Thanks!
 
 require 'rubygems'
 require 'bundler/setup'
@@ -36,22 +31,33 @@ require "#{File.dirname(__FILE__)}/lib/pagerduty"
 options = {}
 
 optparse = OptionParser.new do |opts|
-  opts.banner = "Usage: duty-email.rb\n" +
+  opts.banner = "Usage: oncall-email.rb\n" +
                 "Send an email reminder to the on-call person (and any relevant CCs)."
 
   options[:smtp_server] = 'localhost'
   opts.on( '-m', '--smtp-server HOSTNAME', 'Use HOSTNAME as the SMTP server.') do |host|
     options[:smtp_server] = host
   end
-  
-  options[:subject] = 'you are now on pager duty'
+
+  options[:subject] = '[PagerDuty] You are now on call'
   opts.on( '-s', '--subject SUBJECT', 'Use SUBJECT as the subject line of the email.') do |subject|
     options[:subject] = subject
   end
 
+  options[:from_address] = 'nobody@example.com'
+  opts.on( '-f', '--from ADDRESS', 'Use ADDERSS as the "From:" line of the email.') do |from|
+    options[:from_address] = from
+  end
+
+  # REVIEW: Should this be an ARRAY option?
   options[:ccs] = []
   opts.on( '-c', '--cc EMAIL', 'Send a copy of the email to EMAIL.' ) do |cc|
     options[:ccs] << cc
+  end
+
+  options[:message_file] = nil
+  opts.on( '-m', '--message-file FILENAME', 'Use contents of FILENAME as the email body.') do |filename|
+    options[:message_file] = filename
   end
 
   opts.on( '-h', '--help', 'Display this message' ) do
@@ -62,10 +68,16 @@ end
 
 optparse.parse!
 
+# Default to sending mail to the first-level assignee only, or use levels
+# given as arguments.
+mail_to_levels = ARGV.count > 0 ? ARGV : "1"
+
 # Log into PagerDuty and get the Dashboard page.
 pagerduty  = PagerDuty::Agent.new
-escalation = PagerDuty::Escalation.new "1"
-person = PagerDuty::Person.new
+escalation = PagerDuty::Escalation.new mail_to_levels
+
+# REVIEW: don't we need one Person per level? What's this for?
+person     = PagerDuty::Person.new
 dashboard  = pagerduty.fetch "/dashboard"
 levels     = escalation.parse dashboard.body
 
@@ -76,28 +88,46 @@ levels.each do |level|
   level['email'] = person.email
 end
 
-from = "noreply@change.org"
+# REVIEW: Is the 'recips' line needed? Can Net::SMTP pull addresses from the header?
 recips = options[:ccs] + (levels.map { |level| level['email'] })
 to_line = levels.map{|level| "#{level['person']} <#{level['email']}>" }.join(", ")
 cc_line = options[:ccs].join(", ")
-message = <<MESSAGE_END
-From: DO NOT REPLY <#{from}>
+
+header = <<HEADER_END
+From: PagerDuty <#{options[:from_address]}>
 To: #{to_line}
 CC: #{cc_line}
 Subject: #{options[:subject]}
 
-This email is to let you know that you are now on pager duty.  You will receive
-phone calls for urgent issues, and you are asked to log in and handle any tasks
-as necessary in the tech_ops Help Desk queue:
+HEADER_END
 
-http://helpdesk.change.org
+# REVIEW: Hmm...wonder if the email should be different for each person, telling
+# them what level assignment they have now.
+
+# REVIEW: Should show the full assignment list as a table.
+
+body = <<BODY_END
+Your PagerDuty on-call rotation has started. If you receive alerts about new
+incidents, please acknowledge them as soon as possible if you can respond. If
+not, please escalate them to the next level so they can be handled quickly.
+For more information about an alert, please log into our PagerDuty account at:
+
+    https://#{pagerduty.domain}
 
 Thanks.
+BODY_END
 
-MESSAGE_END
+if options[:message_file] != nil
+  body = ""
+  File.open(options[:message_file], "r") do |file|
+    file.each_line do |line|
+      body += line
+    end
+  end
+end
 
 Net::SMTP.start(options[:smtp_server]) do |smtp|
-  smtp.send_message message, 'noreply@change.org', recips
+  smtp.send_message header + body, options[:from_address], recips
 end
 
 exit(0)

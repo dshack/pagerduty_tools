@@ -31,6 +31,8 @@ ACCOUNT_PROMPT  = "Select your PagerDuty domain: "
 
 module PagerDuty
   class Agent
+    attr_accessor :domain
+
     def initialize
       # Works around a bug in highline, producing "input stream exhausted" errors. See:
       # http://groups.google.com/group/comp.lang.ruby/browse_thread/thread/939d9f86a18e6f9e/ec1c3f1921cd66ea
@@ -134,7 +136,8 @@ module PagerDuty
         person = div.css("span > a")
 
         if @levels == nil or @levels.length == 0 or @levels.include?(level)
-          @results << {'level' => level, 'label' => label, 'person' => person.text, 'person_path' => person.first['href']}
+          @results << {'level' => level, 'label' => label,
+            'person' => person.text, 'person_path' => person.first['href']}
         end
       end
 
