@@ -87,7 +87,7 @@ module PagerDuty
       accounts_search_form = accounts_search_page.form_with(:action => "/accounts/search_results")
       accounts_search_form.email = @email
 
-      search_results_page = account_form.submit
+      search_results_page = accounts_search_form.submit
       search_results = Nokogiri::HTML(search_results_page.body)
       account_list = search_results.css("ul.accounts_list")
       domains = account_list.css("a").map { |account| URI.parse(account["href"]).host }
