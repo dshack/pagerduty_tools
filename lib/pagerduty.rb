@@ -196,7 +196,7 @@ module PagerDuty
       @event   = incident['trigger_details']['event']
 
       if status == 'resolved'
-        if incident['resolved_by'].nil? and service == "Nagios"
+        if incident['resolved_by'].nil? # nil resolvers are automatic, e.g. Nagios
           @resolver = "[Automatic]"
         else
           @resolver = incident['resolved_by']['name']
