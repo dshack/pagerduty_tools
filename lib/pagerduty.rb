@@ -187,12 +187,13 @@ module PagerDuty
   end
 
   class Incident < Report::Item
-    attr_accessor :status, :resolver, :service, :event
+    attr_accessor :status, :resolver, :service, :trigger, :event
 
     def initialize(incident)
       super(Time.xmlschema(incident['created_on']))
       @status  = incident['status']
       @service = incident['service']['name']
+      @trigger = incident['trigger_details']
       @event   = incident['trigger_details']['event']
 
       if status == 'resolved'
@@ -209,13 +210,10 @@ module PagerDuty
     end
 
     def trigger_name
-      case service
-      when "Nagios"
-        return "Nagios: #{event['host']} - #{event['service']}"
-      when "Pingdom"
-        return "Pingdom: #{event['description']}"
+      if trigger['type'] == 'nagios_trigger'
+        return "#{service}: #{event['host']} - #{event['service']}"
       else
-        return "[Unknown event]"
+        return "#{service}: #{event['description']}"
       end
     end
   end
