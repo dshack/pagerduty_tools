@@ -57,7 +57,9 @@ it makes the PagerDuty message more recognizable and nicer.
 * The rotation-report.rb script works well for weekly rotations with no
   exceptions set. It might work well for daily rotations (comparing to the
   same day one week ago), but hasn't been tested for that; and it fails
-  completely if any of the weeks compared have an exception set.
+  completely if any of the weeks compared have an exception set. If you set
+  an exception, you can work around this limitation using the `--start-time`
+  and `--end-time` options to explicitly set the report date range.
 * Login and other errors from PagerDuty's site are not parsed or reported.
 
 # oncall.rb #
