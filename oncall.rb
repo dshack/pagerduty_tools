@@ -45,6 +45,10 @@ optparse = OptionParser.new do |opts|
     options[:campfire_topic] = true
   end
 
+  opts.on( '-p', '--policy POLICY', 'Set the Escalation Policy to display') do |policy|
+    options[:policy] = policy
+  end
+
   opts.on( '-h', '--help', 'Display this message' ) do
     puts opts
     exit
@@ -55,7 +59,7 @@ optparse.parse!
 
 # Log into PagerDuty and get the Dashboard page.
 pagerduty  = PagerDuty::Agent.new
-escalation = PagerDuty::Escalation.new ARGV
+escalation = PagerDuty::Escalation.new ARGV, options[:policy]
 dashboard  = pagerduty.fetch "/dashboard"
 levels     = escalation.parse dashboard.body
 

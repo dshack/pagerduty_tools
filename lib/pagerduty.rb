@@ -114,13 +114,23 @@ module PagerDuty
   end
 
   class Escalation
-    def initialize(levels=nil)
+    def initialize(levels=nil, policy = nil)
       @levels = levels
+      @policy = policy
     end
 
     def parse(dashboard_body)
       # Scrape out the on-call list from the Dashboard HTML.
-      oncall  = Nokogiri::HTML(dashboard_body).css("div.whois_oncall").first # whois oncall first? ha!
+      policies = Nokogiri::HTML(dashboard_body).css("div.whois_oncall")
+
+      oncall = if @policy
+                 policies.detect do |policy|
+                   policy.css('h4 a').text == @policy
+                 end
+               else
+                 policies.first
+               end
+
       @results = []
 
       oncall.css("div").each do |div|
@@ -135,9 +145,17 @@ module PagerDuty
 
         person = div.css("span > a")
 
+        start_time, end_time = div.css("span.time").text.split(" - ").map {|text| text.strip }
+
         if @levels == nil or @levels.length == 0 or @levels.include?(level)
-          @results << {'level' => level, 'label' => label,
-            'person' => person.text, 'person_path' => person.first['href']}
+          @results << {
+                        'level' => level,
+                        'label' => label,
+                        'person' => person.text,
+                        'person_path' => person.first['href'],
+                        'start_time' => start_time,
+                        'end_time' => end_time
+                      }
         end
       end
 

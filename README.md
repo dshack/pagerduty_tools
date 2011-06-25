@@ -77,6 +77,10 @@ output of the script will be set as the topic for the configured room (see
 __Campfire Support__, above). We do this out of cron right after the rotation
 turns over to a new assignment.
 
+oncall.rb defaults to showing the first escalation policy, but if you have
+multiple ones and want to show a specific one, you can invoke it with `-p` or
+`--policy` to specify which one to use.
+
 Calling the script with `-h` or `--help` will display some help.
 
 ## Examples ##
