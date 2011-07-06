@@ -60,6 +60,10 @@ optparse = OptionParser.new do |opts|
     options[:message_file] = filename
   end
 
+  opts.on( '-p', '--policy POLICY', 'Set the Escalation Policy to display') do |policy|
+    options[:policy] = policy
+  end
+
   opts.on( '-h', '--help', 'Display this message' ) do
     puts opts
     exit
@@ -74,7 +78,7 @@ mail_to_levels = ARGV.count > 0 ? ARGV : "1"
 
 # Log into PagerDuty and get the Dashboard page.
 pagerduty  = PagerDuty::Agent.new
-escalation = PagerDuty::Escalation.new mail_to_levels
+escalation = PagerDuty::Escalation.new mail_to_levels, options[:policy]
 
 # REVIEW: don't we need one Person per level? What's this for?
 person     = PagerDuty::Person.new

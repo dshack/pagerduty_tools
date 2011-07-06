@@ -65,6 +65,11 @@ optparse = OptionParser.new do |opts|
     options[:campfire_message] = true
   end
 
+  options[:html] = false
+  opts.on('--html', "HTML Output") do
+    options[:html] = true
+  end
+
   opts.on('-h', '--help', 'Display this message') do
     puts opts
     exit
@@ -221,7 +226,12 @@ email        = alerts.current_summary {|alert, summary| summary[alert.user] += 1
 #
 
 # Header
-report =  "Rotation report for #{current_start.strftime("%B %d")} - "
+report = ""
+if options[:html]
+    report << "<html><body><pre>\n"
+end
+
+report <<  "Rotation report for #{current_start.strftime("%B %d")} - "
 report << "#{current_end.strftime("%B %d")}:\n"
 
 # Incident volume
@@ -245,13 +255,15 @@ report << "\n"
 
 # Top triggers
 report << "Top triggers:\n"
-trigger_report = triggers.map do |trigger, count| 
+trigger_report = triggers.map do |trigger, count|
   trigger_change = Report.pct_change(incidents.previous_count {|incident| incident.trigger_name == trigger }, count)
   "  #{count} \'#{trigger}\' (#{trigger_change})"
 end
 report << trigger_report.take(5).join("\n")
 report << "\n"
-
+if options[:html]
+    report << "</pre></body></html>"
+end
 #
 # Report output
 #
