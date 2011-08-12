@@ -1,21 +1,41 @@
-# Ruby-related ignores
+# Ruby
+*.gem
+*.rbc
+.bundle
+.config
 coverage
+InstalledFiles
+lib/bundler/man
 rdoc
-pkg
+spec/reports
 test/tmp
 test/version_tmp
 tmp
-pkg
-*.gem
-*.rbc
-lib/bundler/man
-spec/reports
-.config
-InstalledFiles
-.bundle
+# Gemfile.lock
+pkg/*
 
-# Mac-related ignores
+
+# YARD artifacts
+.yardoc
+_yardoc
+doc/
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+.elc
+auto-save-list
+tramp
+
+# OSX
 .DS_Store
 Icon?
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
 .Spotlight-V100
 .Trashes
