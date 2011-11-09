@@ -57,11 +57,11 @@ end
 
 optparse.parse!
 
-# Log into PagerDuty and get the Dashboard page.
-pagerduty  = PagerDuty::Agent.new
-escalation = PagerDuty::Escalation.new ARGV, options[:policy]
-dashboard  = pagerduty.fetch "/dashboard"
-levels     = escalation.parse dashboard.body
+# Log into PagerDuty and get the on-call info block.
+pagerduty   = PagerDuty::Agent.new
+escalation  = PagerDuty::Escalation.new ARGV, options[:policy]
+oncall_info = pagerduty.fetch "/on_call_info"
+levels      = escalation.parse oncall_info.body
 
 # Show the current on-call list.
 oncall = levels.map{|level| "#{level['label']}: #{level['person']}" }.join(", ")

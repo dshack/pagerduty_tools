@@ -82,8 +82,11 @@ escalation = PagerDuty::Escalation.new mail_to_levels, options[:policy]
 
 # REVIEW: don't we need one Person per level? What's this for?
 person     = PagerDuty::Person.new
-dashboard  = pagerduty.fetch "/dashboard"
-levels     = escalation.parse dashboard.body
+
+# Log into PagerDuty and get the on-call info block.
+oncall_info = pagerduty.fetch "/on_call_info"
+levels      = escalation.parse oncall_info.body
+
 
 # Get the email address for each on-call level.
 levels.each do |level|
