@@ -158,6 +158,7 @@ Thanks to the following people for contributions!
 * [André Arko](https://github.com/indirect)
 * [Brian Donovan](https://github.com/eventualbuddha)
 * [Brad Greenlee](https://github.com/bgreenlee)
+* [Josh Nichols](https://github.com/technicalpickles)
 
 # License #
 
