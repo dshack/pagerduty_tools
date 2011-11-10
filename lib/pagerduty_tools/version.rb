@@ -1,3 +1,6 @@
+
 module PagerdutyTools
-  VERSION = "0.3.0"
+  unless defined?(VERSION)
+    VERSION = "0.3.6"
+  end
 end
