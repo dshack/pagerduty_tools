@@ -6,7 +6,7 @@ here are two Campfire updates from these scripts that set the room topic to
 the current on-call rotation, and then report on the incidents and alerts from
 the previous rotation:
 
-![campfire example](https://github.com/precipice/pagerduty-tools/raw/master/images/campfire-example.png)
+![campfire example](https://github.com/precipice/pagerduty_tools/raw/master/images/campfire-example.png)
 
 ## IMPORTANT: Status ##
 
