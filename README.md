@@ -159,6 +159,7 @@ Thanks to the following people for contributions!
 * [Brian Donovan](https://github.com/eventualbuddha)
 * [Brad Greenlee](https://github.com/bgreenlee)
 * [Josh Nichols](https://github.com/technicalpickles)
+* [James Casey](https://github.com/jamesc)
 
 # License #
 
