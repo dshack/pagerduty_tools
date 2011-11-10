@@ -84,9 +84,9 @@ optparse.parse!
 #
 pagerduty  = PagerDuty::Agent.new
 escalation = PagerDuty::Escalation.new
-dashboard  = pagerduty.fetch "/dashboard"
 
-escalation.parse dashboard.body
+oncall_info = pagerduty.fetch "/on_call_info"
+escalation.parse oncall_info.body
 target_level = escalation.label_for_level "1"
 
 unless target_level
