@@ -1,6 +1,4 @@
 source "http://rubygems.org"
-gem "chronic"
-gem "highline"
-gem "json"
-gem "nokogiri"
-gem "mechanize"
+
+# Specify your gem's dependencies in pagerduty_tools.gemspec
+gemspec

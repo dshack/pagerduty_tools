@@ -15,7 +15,14 @@
 # limitations under the License.
 
 require 'rubygems'
+require 'bundler/setup'
+
 require 'hpricot'
+
+lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+$LOAD_PATH.unshift(lib) if File.directory?(lib) && !$LOAD_PATH.include?(lib)
+
+require 'pagerduty_tools'
 
 if (ARGV.length == 0)
   puts "Usage: pagerduty-report.rb [report-html-file]"
