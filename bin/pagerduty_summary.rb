@@ -27,9 +27,10 @@ require 'json'
 require 'nokogiri'
 require 'optparse'
 
-require "#{File.dirname(__FILE__)}/lib/campfire"
-require "#{File.dirname(__FILE__)}/lib/pagerduty"
-require "#{File.dirname(__FILE__)}/lib/report"
+lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+$LOAD_PATH.unshift(lib) if File.directory?(lib) && !$LOAD_PATH.include?(lib)
+
+require 'pagerduty_tools'
 
 ONE_DAY  = 60 * 60 * 24
 ONE_WEEK = ONE_DAY * 7
