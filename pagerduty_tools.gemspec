@@ -21,12 +21,12 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_development_dependency "bundler", "~> 1.0.17"
-  s.add_development_dependency "fuubar",   "~> 0.0.5"
+  s.add_development_dependency "bundler", "~> 1.0"
+  s.add_development_dependency "fuubar"
   
-  s.add_runtime_dependency "chronic",   "~> 0.3.0"
-  s.add_runtime_dependency "highline",  "~> 1.6.1"
-  s.add_runtime_dependency "json",      "~> 1.5.1"
-  s.add_runtime_dependency "mechanize", "~> 1.0.0"
-  s.add_runtime_dependency "nokogiri",  "~> 1.5.0"
+  s.add_runtime_dependency "chronic",   "~> 0.6"
+  s.add_runtime_dependency "highline",  "~> 1.6"
+  s.add_runtime_dependency "json",      "~> 1.6"
+  s.add_runtime_dependency "mechanize", "~> 2.0"
+  s.add_runtime_dependency "nokogiri",  "~> 1.5"
 end
