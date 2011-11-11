@@ -42,8 +42,17 @@ optparse = OptionParser.new do |opts|
                 "If no level is given, all levels will be shown by default."
 
   options[:campfire_topic] = false
-  opts.on( '-t', '--campfire-topic', 'Set the result as a topic for a Campfire room' ) do
+  opts.on( '-c', '--campfire', 'Set the result as a topic for a Campfire room' ) do
     options[:campfire_topic] = true
+  end
+
+  opts.on( '-t', '--campfire-topic', 'Synonym for -c, for compatability (use -c instead)' ) do
+    options[:campfire_topic] = true
+  end
+
+  options[:email_notification] = false
+  opts.on( '-e', '--email', 'Notify assignees by email -- CURRENTLY BROKEN' ) do
+    options[:email_notification] = true
   end
 
   opts.on( '-p', '--policy POLICY', 'Set the Escalation Policy to display') do |policy|
