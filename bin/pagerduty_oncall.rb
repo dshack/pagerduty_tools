@@ -67,6 +67,7 @@ levels      = escalation.parse oncall_info.body
 # Get the email address for each on-call level.
 levels.each do |level|
   user = pagerduty.fetch level['person_path']
+  person = PagerDuty::Person.new
   person.parse user.body
   level['email'] = person.email
 end
