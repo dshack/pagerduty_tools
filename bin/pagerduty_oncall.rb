@@ -24,9 +24,7 @@
 # PagerDuty login cookies will be stored at ~/.pagerduty-cookies, so you
 # should only need to enter login credentials on the first run.
 
-require 'rubygems'
-require 'bundler/setup'
-
+require 'psych'
 require 'nokogiri'
 require 'optparse'
 

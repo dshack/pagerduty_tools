@@ -19,10 +19,8 @@
 # Original script contributed by Jeffrey Wescott
 # (https://github.com/binaryfeed). Thanks!
 
-require 'rubygems'
-require 'bundler/setup'
+require 'psych'
 require 'net/smtp'
-
 require 'optparse'
 
 lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))

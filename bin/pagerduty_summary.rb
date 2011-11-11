@@ -19,9 +19,7 @@
 # Gathers information about incidents and alerts during a PagerDuty
 # rotation, and reports on them.
 
-require 'rubygems'
-require 'bundler/setup'
-
+require 'psych'
 require 'date'
 require 'json'
 require 'nokogiri'

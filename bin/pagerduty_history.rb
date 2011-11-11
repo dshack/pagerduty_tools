@@ -14,9 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'rubygems'
-require 'bundler/setup'
-
+require 'psych'
 require 'hpricot'
 
 lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
