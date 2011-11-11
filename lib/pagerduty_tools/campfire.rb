@@ -34,7 +34,7 @@ require 'uri'
 require 'yaml'
 
 CONFIG_FILE = "~/.pagerduty-campfire.yaml"
-CA_FILE     = "#{File.dirname(__FILE__)}/cacert.pem"
+CA_FILE     = "#{File.dirname(__FILE__)}/../cacert.pem"
 
 module Campfire
   class Bot
