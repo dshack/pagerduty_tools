@@ -13,24 +13,17 @@ the previous rotation:
 Several changes to PagerDuty's site have broken parts of these tools. I'm 
 currently working on repairing them and on making the tools into a gem. Status
 as of this writing is that the `bin/pagerduty_oncall.rb` script is working and
-the others are not.  The gem builds and installs.
+the others are not.  The gem has been published and installs correctly.
 
 ## Installing ##
 
-Ruby 1.8.7 or later is required.
+Ruby 1.9 is required. Run:
 
-First, clone the GitHub repo:
+    $ gem install pagerduty_tools
 
-    $ git clone git://github.com/precipice/pagerduty-tools.git
-
-If you don't already have [Bundler](http://gembundler.com/) installed, do that
-now:
-
-    $ gem install bundler
-
-Then install required gems via Bundler:
-
-    $ bundle install
+The scripts provided by the gem will be in the gem executable directory. If this
+isn't already in your path, run `gem environment | grep "EXECUTABLE DIRECTORY"`
+and put the result into your path.
 
 The scripts log into the PagerDuty site when first run. Your email address
 will be used to find associated PagerDuty accounts, and you can choose the
