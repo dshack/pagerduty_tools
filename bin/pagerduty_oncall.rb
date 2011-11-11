@@ -64,8 +64,15 @@ escalation  = PagerDuty::Escalation.new ARGV, options[:policy]
 oncall_info = pagerduty.fetch "/on_call_info"
 levels      = escalation.parse oncall_info.body
 
+# Get the email address for each on-call level.
+levels.each do |level|
+  user = pagerduty.fetch level['person_path']
+  person.parse user.body
+  level['email'] = person.email
+end
+
 # Show the current on-call list.
-oncall = levels.map{|level| "#{level['label']}: #{level['person']}" }.join(", ")
+oncall = levels.map{|level| "#{level['label']}: #{level['person']} <#{level['email']}>" }.join(", ")
 
 if (options[:campfire_topic])
   campfire = Campfire::Bot.new

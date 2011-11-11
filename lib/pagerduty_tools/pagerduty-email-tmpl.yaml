@@ -1,0 +1,45 @@
+options[:smtp_server] = 'localhost'
+opts.on( '-m', '--smtp-server HOSTNAME', 'Use HOSTNAME as the SMTP server.') do |host|
+  options[:smtp_server] = host
+end
+
+options[:subject] = '[PagerDuty] You are now on call'
+opts.on( '-s', '--subject SUBJECT', 'Use SUBJECT as the subject line of the email.') do |subject|
+  options[:subject] = subject
+end
+
+options[:from_address] = 'nobody@example.com'
+opts.on( '-f', '--from ADDRESS', 'Use ADDERSS as the "From:" line of the email.') do |from|
+  options[:from_address] = from
+end
+
+# REVIEW: Should this be an ARRAY option?
+options[:ccs] = []
+opts.on( '-c', '--cc EMAIL', 'Send a copy of the email to EMAIL.' ) do |cc|
+  options[:ccs] << cc
+end
+
+options[:message_file] = nil
+opts.on( '-m', '--message-file FILENAME', 'Use contents of FILENAME as the email body.') do |filename|
+  options[:message_file] = filename
+end
+
+      header = <<HEADER_END
+From: PagerDuty <#{options[:from_address]}>
+To: #{to_line}
+CC: #{cc_line}
+Subject: #{options[:subject]}
+
+HEADER_END
+
+      body = <<BODY_END
+Your PagerDuty on-call rotation has started. If you receive alerts about new
+incidents, please acknowledge them as soon as possible if you can respond. If
+not, please escalate them to the next level so they can be handled quickly.
+For more information about an alert, please log into our PagerDuty account at:
+
+    https://#{pagerduty.domain}
+
+Thanks.
+BODY_END
+
