@@ -81,13 +81,19 @@ levels.each do |level|
   level['email'] = person.email
 end
 
-# Show the current on-call list.
+#Output the current oncall list based on the output options.
 oncall = levels.map{|level| "#{level['label']}: #{level['person']}" }.join(", ")
 
 if (options[:campfire_topic])
   campfire = Campfire::Bot.new
   campfire.topic oncall
-else
+end
+
+if (options[:email_notification])
+  puts "Email option is not working yet. No email was sent."
+end
+
+if (options[:campfire_topic] == false && options[:email_notification] == false)
   puts oncall
 end
 
