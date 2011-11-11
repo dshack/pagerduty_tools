@@ -73,7 +73,7 @@ levels.each do |level|
 end
 
 # Show the current on-call list.
-oncall = levels.map{|level| "#{level['label']}: #{level['person']} <#{level['email']}>" }.join(", ")
+oncall = levels.map{|level| "#{level['label']}: #{level['person']}" }.join(", ")
 
 if (options[:campfire_topic])
   campfire = Campfire::Bot.new
