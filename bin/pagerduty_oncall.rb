@@ -24,12 +24,13 @@
 # PagerDuty login cookies will be stored at ~/.pagerduty-cookies, so you
 # should only need to enter login credentials on the first run.
 
-require 'psych'
+lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+$LOAD_PATH.unshift(lib) if File.directory?(lib) && !$LOAD_PATH.include?(lib)
+
+require 'psychout'
 require 'nokogiri'
 require 'optparse'
 
-lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
-$LOAD_PATH.unshift(lib) if File.directory?(lib) && !$LOAD_PATH.include?(lib)
 
 require 'pagerduty_tools'
 

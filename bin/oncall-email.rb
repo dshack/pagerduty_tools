@@ -19,12 +19,12 @@
 # Original script contributed by Jeffrey Wescott
 # (https://github.com/binaryfeed). Thanks!
 
-require 'psych'
-require 'net/smtp'
-require 'optparse'
-
 lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
 $LOAD_PATH.unshift(lib) if File.directory?(lib) && !$LOAD_PATH.include?(lib)
+
+require 'psychout'
+require 'net/smtp'
+require 'optparse'
 
 require 'pagerduty_tools'
 

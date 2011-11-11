@@ -19,14 +19,14 @@
 # Gathers information about incidents and alerts during a PagerDuty
 # rotation, and reports on them.
 
-require 'psych'
+lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+$LOAD_PATH.unshift(lib) if File.directory?(lib) && !$LOAD_PATH.include?(lib)
+
+require 'psychout'
 require 'date'
 require 'json'
 require 'nokogiri'
 require 'optparse'
-
-lib = File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
-$LOAD_PATH.unshift(lib) if File.directory?(lib) && !$LOAD_PATH.include?(lib)
 
 require 'pagerduty_tools'
 
