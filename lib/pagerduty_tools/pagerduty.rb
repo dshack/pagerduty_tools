@@ -121,31 +121,36 @@ module PagerDuty
 
     def parse(dashboard_body)
       # Scrape out the on-call list from the Dashboard HTML.
-      policies = Nokogiri::HTML(dashboard_body).css("div.whois_oncall")
+      policies = Nokogiri::HTML(dashboard_body).css("div.on-call-info-container")
 
-      oncall = if @policy
-                 policies.detect do |policy|
-                   policy.css('h4 a').text == @policy
-                 end
-               else
-                 policies.first
-               end
+      # There's no container for separate policies anymore.
+      # They are just concatenated, with a leading <h5>. Ugh.
+
+      # oncall = if @policy
+      #            policies.detect do |policy|
+      #              policy.css('h4 a').text == @policy
+      #            end
+      #          else
+      #            policies.first
+      #          end
+
+      rules_table = policies.css("table.escalation-rules")[0]
 
       @results = []
 
-      oncall.css("div").each do |div|
-        level_text = div.css("span > strong").text
+      rules_table.css("tr td").each do |td|
+        level_text = td.xpath("strong").text
         level_text =~ /Level (\d+)\:/
         level = $1
 
         # PagerDuty sometimes adds a comment saying what the rotation is called
         # for this level. If it's there, use it, or fall back to a generic label.
-        label_text = div.xpath("span/comment()").text
+        label_text = td.xpath("span/comment()").text
         label = label_text[/\(<[^>]+>(.+) on-call<\/a>\)/, 1] || "Level #{level}"
 
-        person = div.css("span > a")
+        person = td.css("a")
 
-        start_time, end_time = div.css("span.time").text.split(" - ").map {|text| text.strip }
+        start_time, end_time = td.css("div.on-call-time").text.split(" - ").map {|text| text.strip }
 
         if @levels == nil or @levels.length == 0 or @levels.include?(level)
           @results << {
