@@ -1,3 +1,9 @@
+## IMPORTANT: Status - Deprecated ##
+
+Since I originally wrote this, PagerDuty has released a more complete API and a 
+lot of the approach here is no longer needed. I'd strongly suggest not using this
+project and instead relying on their API directly.
+
 # pagerduty-tools #
 
 Tools to work around limitations in the [PagerDuty](http://www.pagerduty.com)
@@ -8,12 +14,7 @@ the previous rotation:
 
 ![campfire example](https://github.com/precipice/pagerduty_tools/raw/master/images/campfire-example.png)
 
-## IMPORTANT: Status ##
 
-Several changes to PagerDuty's site have broken parts of these tools. I'm 
-currently working on repairing them and on making the tools into a gem. Status
-as of this writing is that the `bin/pagerduty_oncall.rb` script is working and
-the others are not.  The gem has been published and installs correctly.
 
 ## Installing ##
 
